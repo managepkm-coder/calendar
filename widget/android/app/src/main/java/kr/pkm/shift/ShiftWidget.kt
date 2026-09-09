@@ -53,24 +53,10 @@ class ShiftWidget : AppWidgetProvider() {
             ids.forEach { mgr.updateAppWidget(it, buildViews(ctx)) }
         }
 
-        private fun badgeBg(s: Shift) = when (s) {
-            Shift.DAY -> R.drawable.badge_ju
-            Shift.NIGHT -> R.drawable.badge_ya
-            Shift.OFF -> R.drawable.badge_bi
-            Shift.REST -> R.drawable.badge_hyu
-        }
-
-        private fun badgeFg(s: Shift) = when (s) {
-            Shift.DAY -> 0xFF3D3300.toInt()
-            Shift.NIGHT -> 0xFFFFFFFF.toInt()
-            Shift.OFF -> 0xFFC9372B.toInt()
-            Shift.REST -> 0xFF6B6B73.toInt()
-        }
-
         private fun paint(v: RemoteViews, id: Int, s: Shift) {
             v.setTextViewText(id, s.label)
-            v.setInt(id, "setBackgroundResource", badgeBg(s))
-            v.setTextColor(id, badgeFg(s))
+            v.setInt(id, "setBackgroundResource", Palette.bg(s))
+            v.setTextColor(id, Palette.fg(s))
         }
 
         private fun buildViews(ctx: Context): RemoteViews {

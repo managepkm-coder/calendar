@@ -1,56 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@color/screen_bg"
-    android:padding="24dp" android:gravity="center_horizontal">
-
-    <TextView
-        android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="@string/pick_title" android:textSize="19sp" android:textStyle="bold"
-        android:textColor="@color/text_primary" android:layout_marginTop="24dp" />
-
-    <TextView
-        android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="@string/pick_hint" android:textSize="13sp"
-        android:textColor="@color/text_muted" android:layout_marginTop="6dp" />
+    android:padding="10dp" android:fillViewport="true">
 
     <LinearLayout
-        android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:orientation="horizontal" android:layout_marginTop="26dp">
-        <TextView android:id="@+id/pickJu"
-            android:layout_width="60dp" android:layout_height="60dp"
-            android:layout_marginEnd="10dp"
-            android:background="@drawable/badge_ju"
-            android:gravity="center" android:textSize="24sp" android:textStyle="bold"
-            android:textColor="#3D3300" android:text="주" android:clickable="true"
-            android:focusable="true" />
-        <TextView android:id="@+id/pickYa"
-            android:layout_width="60dp" android:layout_height="60dp"
-            android:layout_marginEnd="10dp"
-            android:background="@drawable/badge_ya"
-            android:gravity="center" android:textSize="24sp" android:textStyle="bold"
-            android:textColor="#FFFFFF" android:text="야" android:clickable="true"
-            android:focusable="true" />
-        <TextView android:id="@+id/pickBi"
-            android:layout_width="60dp" android:layout_height="60dp"
-            android:layout_marginEnd="10dp"
-            android:background="@drawable/badge_bi"
-            android:gravity="center" android:textSize="24sp" android:textStyle="bold"
-            android:textColor="#C9372B" android:text="비" android:clickable="true"
-            android:focusable="true" />
-        <TextView android:id="@+id/pickHyu"
-            android:layout_width="60dp" android:layout_height="60dp"
-            android:layout_marginEnd="10dp"
-            android:background="@drawable/badge_hyu"
-            android:gravity="center" android:textSize="24sp" android:textStyle="bold"
-            android:textColor="#6B6B73" android:text="휴" android:clickable="true"
-            android:focusable="true" />
-    </LinearLayout>
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_card"
+        android:padding="14dp">
 
-    <TextView android:id="@+id/preview"
-        android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:layout_marginTop="30dp" android:textSize="16sp"
-        android:fontFamily="monospace" android:lineSpacingExtra="5dp"
-        android:textColor="@color/text_primary" />
-</LinearLayout>
+        <!-- 헤더: 설정 / 이전 · 년월 · 다음 / 오늘 -->
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+
+            <TextView android:id="@+id/btnSettings"
+                android:layout_width="44dp" android:layout_height="44dp"
+                android:text="⚙" android:textSize="22sp" android:gravity="center"
+                android:textColor="@color/text_primary"
+                android:clickable="true" android:focusable="true" />
+
+            <LinearLayout
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="horizontal"
+                android:gravity="center">
+                <TextView android:id="@+id/prev"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="‹" android:textSize="26sp" android:padding="8dp"
+                    android:textColor="@color/text_muted"
+                    android:clickable="true" android:focusable="true" />
+                <TextView android:id="@+id/ym"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:textSize="24sp" android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
+                <TextView android:id="@+id/next"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="›" android:textSize="26sp" android:padding="8dp"
+                    android:textColor="@color/text_muted"
+                    android:clickable="true" android:focusable="true" />
+            </LinearLayout>
+
+            <TextView android:id="@+id/btnToday"
+                android:layout_width="44dp" android:layout_height="44dp"
+                android:text="⟳" android:textSize="22sp" android:gravity="center"
+                android:textColor="@color/text_primary"
+                android:clickable="true" android:focusable="true" />
+        </LinearLayout>
+
+        <TextView android:id="@+id/sub"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center" android:textSize="12sp"
+            android:textColor="@color/text_muted" android:layout_marginBottom="8dp" />
+
+        <!-- 요일 -->
+        <LinearLayout android:id="@+id/dowRow"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="2dp" />
+
+        <!-- 날짜 -->
+        <GridLayout android:id="@+id/grid"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:columnCount="7" />
+    </LinearLayout>
+</ScrollView>

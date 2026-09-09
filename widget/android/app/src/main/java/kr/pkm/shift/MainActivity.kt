@@ -1,47 +1,186 @@
 package kr.pkm.shift
 
 import android.app.Activity
+import android.app.AlertDialog
+import android.graphics.Typeface
 import android.os.Bundle
+import android.util.TypedValue
+import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
+import android.widget.GridLayout
+import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import java.time.LocalDate
 
-/** 오늘의 근무만 고르면 나머지 날짜가 전부 맞춰집니다. */
+/** 월 단위 근무 달력. 위젯과 같은 Schedule 을 쓰므로 두 화면이 항상 일치합니다. */
 class MainActivity : Activity() {
 
-    private val buttons by lazy {
-        listOf(
-            R.id.pickJu to Shift.DAY,
-            R.id.pickYa to Shift.NIGHT,
-            R.id.pickBi to Shift.OFF,
-            R.id.pickHyu to Shift.REST,
-        )
-    }
+    private var month: LocalDate = LocalDate.now().withDayOfMonth(1)
+    private lateinit var grid: GridLayout
+
+    private val dowNames = arrayOf("일", "월", "화", "수", "목", "금", "토")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        grid = findViewById(R.id.grid)
 
-        buttons.forEach { (id, shift) ->
-            findViewById<View>(id).setOnClickListener {
-                Schedule.setTodayShift(this, shift)
-                ShiftWidget.refreshAll(this)
-                ShiftWidget.scheduleMidnight(this)
-                render()
-                Toast.makeText(this, "오늘을 ${shift.full}으로 맞췄습니다", Toast.LENGTH_SHORT).show()
-            }
+        findViewById<View>(R.id.prev).setOnClickListener { move(-1) }
+        findViewById<View>(R.id.next).setOnClickListener { move(1) }
+        findViewById<View>(R.id.btnToday).setOnClickListener {
+            month = LocalDate.now().withDayOfMonth(1); render()
         }
+        findViewById<View>(R.id.btnSettings).setOnClickListener { openSettings() }
+
+        buildDowHeader()
         render()
     }
 
-    private fun render() {
-        val today = LocalDate.now()
-        val lines = (0..6).joinToString("\n") { i ->
-            val d = today.plusDays(i.toLong())
-            val mark = if (i == 0) "오늘  " else "      "
-            "$mark${d.monthValue}/${d.dayOfMonth}   ${Schedule.at(this, d).full}"
+    private fun dp(v: Int) = TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics
+    ).toInt()
+
+    private fun move(delta: Int) {
+        month = month.plusMonths(delta.toLong()); render()
+    }
+
+    private fun buildDowHeader() {
+        val row = findViewById<LinearLayout>(R.id.dowRow)
+        dowNames.forEachIndexed { i, name ->
+            val t = TextView(this)
+            t.text = name
+            t.gravity = Gravity.CENTER
+            t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            t.setTypeface(null, Typeface.BOLD)
+            t.setTextColor(
+                when (i) {
+                    0 -> SUNDAY
+                    6 -> SATURDAY
+                    else -> getColor(R.color.text_primary)
+                }
+            )
+            t.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            row.addView(t)
         }
-        findViewById<TextView>(R.id.preview).text = lines
+    }
+
+    private fun render() {
+        findViewById<TextView>(R.id.ym).text = "%d. %02d".format(month.year, month.monthValue)
+
+        val today = LocalDate.now()
+        findViewById<TextView>(R.id.sub).text =
+            "오늘 %02d.%02d · %s".format(today.monthValue, today.dayOfMonth, Schedule.at(this, today).full)
+
+        // 그 주의 일요일부터 시작해 필요한 주 수만큼만 그린다
+        val startDow = month.dayOfWeek.value % 7          // 월=1..일=7 → 일=0
+        val start = month.minusDays(startDow.toLong())
+        val cells = ((startDow + month.lengthOfMonth() + 6) / 7) * 7
+
+        grid.removeAllViews()
+        for (i in 0 until cells) {
+            val date = start.plusDays(i.toLong())
+            val cell = buildCell(date, date.monthValue == month.monthValue)
+            cell.layoutParams = GridLayout.LayoutParams(
+                GridLayout.spec(i / 7), GridLayout.spec(i % 7, 1f)
+            ).apply { width = 0 }
+            grid.addView(cell)
+        }
+    }
+
+    private fun buildCell(date: LocalDate, inMonth: Boolean): View {
+        val holiday = Holidays.nameOf(date)
+        val col = LinearLayout(this)
+        col.orientation = LinearLayout.VERTICAL
+        col.gravity = Gravity.CENTER_HORIZONTAL
+        col.setPadding(0, dp(7), 0, dp(9))
+        if (date == LocalDate.now()) col.setBackgroundResource(R.drawable.bg_today)
+        col.alpha = if (inMonth) 1f else 0.42f
+
+        val label = TextView(this)
+        label.text = (if (date.dayOfMonth == 1) "%02d.%02d".format(date.monthValue, date.dayOfMonth)
+                      else "%02d".format(date.dayOfMonth)) + (holiday?.let { " $it" } ?: "")
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+        label.setTypeface(null, Typeface.BOLD)
+        label.setTextColor(
+            when {
+                holiday != null || date.dayOfWeek.value == 7 -> SUNDAY
+                date.dayOfWeek.value == 6 -> SATURDAY
+                else -> getColor(R.color.text_primary)
+            }
+        )
+        col.addView(label)
+
+        val shift = Schedule.at(this, date)
+        val badge = TextView(this)
+        badge.text = shift.label
+        badge.gravity = Gravity.CENTER
+        badge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+        badge.setTypeface(null, Typeface.BOLD)
+        badge.setTextColor(Palette.fg(shift))
+        badge.setBackgroundResource(Palette.bg(shift))
+        badge.layoutParams = LinearLayout.LayoutParams(dp(33), dp(33))
+            .apply { topMargin = dp(4) }
+        col.addView(badge)
+
+        col.setOnClickListener { openDay(date) }
+        return col
+    }
+
+    /** 하루만 다르게 지정 (교대·연차) */
+    private fun openDay(date: LocalDate) {
+        val choices = Shift.entries
+        val items = (choices.map { it.full } + "기본값으로 되돌리기").toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("%d. %02d. %02d".format(date.year, date.monthValue, date.dayOfMonth))
+            .setItems(items) { _, which ->
+                Schedule.setOverride(this, date, choices.getOrNull(which))
+                ShiftWidget.refreshAll(this)
+                render()
+            }
+            .show()
+    }
+
+    private fun openSettings() {
+        AlertDialog.Builder(this)
+            .setTitle("오늘의 근무를 선택하세요")
+            .setMessage("한 번만 맞추면 나머지 날짜는 자동으로 계산됩니다.")
+            .setItems(Shift.CYCLE.map { it.full }.toTypedArray()) { _, which ->
+                Schedule.setTodayShift(this, Shift.CYCLE[which])
+                ShiftWidget.refreshAll(this)
+                ShiftWidget.scheduleMidnight(this)
+                render()
+            }
+            .setNeutralButton("직접 지정한 날짜 모두 지우기") { _, _ ->
+                Schedule.clearOverrides(this)
+                ShiftWidget.refreshAll(this)
+                render()
+            }
+            .setNegativeButton("닫기", null)
+            .show()
+    }
+
+    // 좌우 스와이프로 달 이동
+    private var downX = 0f
+    private var downY = 0f
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        when (ev.action) {
+            MotionEvent.ACTION_DOWN -> { downX = ev.x; downY = ev.y }
+            MotionEvent.ACTION_UP -> {
+                val dx = ev.x - downX
+                val dy = ev.y - downY
+                if (Math.abs(dx) > dp(60) && Math.abs(dx) > Math.abs(dy) * 2) {
+                    move(if (dx < 0) 1 else -1)
+                    return true
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+
+    private companion object {
+        const val SUNDAY = 0xFFE0483C.toInt()
+        const val SATURDAY = 0xFF2F6FD0.toInt()
     }
 }
