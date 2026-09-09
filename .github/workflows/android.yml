@@ -7,6 +7,10 @@ on:
       - '.github/workflows/android.yml'
   workflow_dispatch:
 
+# Release 에 APK 를 올리기 위해 필요
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,9 +32,23 @@ jobs:
         working-directory: widget/android
         run: gradle assembleDebug --no-daemon --stacktrace
 
-      # 폰에서 바로 내려받아 설치할 수 있는 APK
+      - name: Rename APK
+        run: cp widget/android/app/build/outputs/apk/debug/app-debug.apk shift-widget.apk
+
+      # Release 자산은 로그인 없이 바로 내려받을 수 있고 ZIP 으로 감싸이지도 않습니다.
+      # 링크가 고정되므로 폰에서 항상 같은 주소로 최신 APK 를 받을 수 있습니다.
+      - name: Publish APK to the "latest" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view latest >/dev/null 2>&1 || gh release create latest \
+            --title "근무표 위젯 — 최신 빌드" \
+            --notes "홈 화면 교대 근무 위젯입니다. 아래 shift-widget.apk 를 폰에서 받아 설치하세요. 로그인 없이 받을 수 있습니다."
+          gh release upload latest shift-widget.apk --clobber
+
+      # 로그인한 상태에서 받고 싶을 때를 위해 아티팩트도 그대로 둡니다.
       - uses: actions/upload-artifact@v4
         with:
           name: shift-widget-apk
-          path: widget/android/app/build/outputs/apk/debug/*.apk
+          path: shift-widget.apk
           if-no-files-found: error
