@@ -8,11 +8,13 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "kr.pkm.shift"
+        // 예전 빌드(kr.pkm.shift)와 서명이 달라 업데이트 설치가 거부되므로
+        // 패키지를 바꿔 완전히 새 앱으로 설치되게 한다
+        applicationId = "kr.pkm.geunmupyo"
         minSdk = 26          // java.time 사용
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
     }
 
     // 저장소에 들어 있는 고정 키로 서명합니다.
@@ -41,6 +43,6 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 
-dependencies {
-    implementation("androidx.core:core-ktx:1.13.1")
-}
+// 의존성 없음 — 프레임워크 API 와 코틀린 표준 라이브러리만 사용합니다.
+// androidx 를 넣으면 쓰지도 않는 코드가 dex 를 4MB 넘게 부풀립니다.
+dependencies { }
