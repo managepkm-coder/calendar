@@ -37,6 +37,7 @@ class MainActivity : Activity() {
         buildDowHeader()
         render()
         openFromWidget(intent)
+        if (!Schedule.isConfigured(this)) openSettings()
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -91,8 +92,11 @@ class MainActivity : Activity() {
         val version = runCatching {
             packageManager.getPackageInfo(packageName, 0).versionName
         }.getOrNull() ?: "?"
-        findViewById<TextView>(R.id.sub).text = "오늘 %02d.%02d · %s   ·   v%s".format(
-            today.monthValue, today.dayOfMonth, Schedule.at(this, today).full, version)
+        val shift = Schedule.at(this, today)
+        findViewById<TextView>(R.id.sub).text =
+            if (shift == null) "⚙ 를 눌러 오늘의 근무를 먼저 정하세요   ·   v$version"
+            else "오늘 %02d.%02d · %s   ·   v%s".format(
+                today.monthValue, today.dayOfMonth, shift.full, version)
 
         // 그 주의 일요일부터 시작해 필요한 주 수만큼만 그린다
         val startDow = month.dayOfWeek.value % 7          // 월=1..일=7 → 일=0
@@ -135,12 +139,14 @@ class MainActivity : Activity() {
 
         val shift = Schedule.at(this, date)
         val badge = TextView(this)
-        badge.text = shift.label
+        if (shift != null) {
+            badge.text = shift.label
+            badge.setTextColor(Palette.fg(shift))
+            badge.setBackgroundResource(Palette.bg(shift))
+        }
         badge.gravity = Gravity.CENTER
         badge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
         badge.setTypeface(null, Typeface.BOLD)
-        badge.setTextColor(Palette.fg(shift))
-        badge.setBackgroundResource(Palette.bg(shift))
         badge.layoutParams = LinearLayout.LayoutParams(dp(33), dp(33))
             .apply { topMargin = dp(4) }
         col.addView(badge)
@@ -152,7 +158,7 @@ class MainActivity : Activity() {
     /** 날짜를 누르면 주기 맞추기가 기본. 하루만 바꾸는 것은 한 단계 아래에 둔다. */
     private fun openDay(date: LocalDate) {
         val cycle = Shift.CYCLE
-        val items = (cycle.map { "${it.full}으로 맞추기" } + listOf("이 날만 바꾸기 (연차·교대)", "기본값으로 되돌리기"))
+        val items = (cycle.map { "${it.full}으로 맞추기" } + listOf("이 날만 바꾸기 (연차·교대)", "이 날 지정 해제 (주기대로)"))
             .toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("%d. %02d. %02d  ·  전체 주기 맞추기".format(date.year, date.monthValue, date.dayOfMonth))

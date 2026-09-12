@@ -34,6 +34,11 @@ object Schedule {
         return ((ChronoUnit.DAYS.between(ANCHOR, date) % n + n) % n).toInt()
     }
 
+    /** 근무 주기를 아직 정하지 않았으면 false.
+     *  기준일을 코드에 박아두면 다른 조 사람에게 틀린 표가 그럴듯하게 보이므로,
+     *  사용자가 한 번 고르기 전까지는 어떤 근무도 만들어내지 않는다. */
+    fun isConfigured(ctx: Context): Boolean = prefs(ctx).contains(KEY_OFFSET)
+
     fun offset(ctx: Context): Int = prefs(ctx).getInt(KEY_OFFSET, 0)
 
     /** "이 날은 OO 근무"만 알려주면 나머지 날짜가 전부 맞춰집니다.
@@ -73,7 +78,11 @@ object Schedule {
         e.apply()
     }
 
-    /** 하루 지정이 있으면 그것을, 없으면 주기 계산 결과를 돌려줍니다. */
-    fun at(ctx: Context, date: LocalDate): Shift =
-        overrideOf(ctx, date) ?: Shift.CYCLE[(base(date) + offset(ctx)) % Shift.CYCLE.size]
+    /** 하루 지정이 있으면 그것을, 없으면 주기 계산 결과를 돌려줍니다.
+     *  아직 주기를 정하지 않았다면 null — 화면에는 빈 칸으로 나옵니다. */
+    fun at(ctx: Context, date: LocalDate): Shift? {
+        overrideOf(ctx, date)?.let { return it }
+        if (!isConfigured(ctx)) return null
+        return Shift.CYCLE[(base(date) + offset(ctx)) % Shift.CYCLE.size]
+    }
 }

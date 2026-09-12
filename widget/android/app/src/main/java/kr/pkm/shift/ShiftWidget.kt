@@ -90,6 +90,10 @@ class ShiftWidget : AppWidgetProvider() {
             val month = today.withDayOfMonth(1)
                 .plusMonths(Schedule.monthOffset(ctx).toLong())
 
+            // 주기를 정하기 전에는 근무를 지어내지 않고 설정을 유도한다
+            val configured = Schedule.isConfigured(ctx)
+            v.setTextViewText(R.id.btnToday, if (configured) "오늘" else "근무 설정 →")
+
             v.setTextViewText(R.id.ym, "%d. %02d".format(month.year, month.monthValue))
             v.setTextColor(R.id.ym, ctx.getColor(R.color.text_primary))
             for (id in intArrayOf(R.id.btnToday, R.id.btnPrev, R.id.btnNext, R.id.btnSettings)) {
@@ -97,7 +101,9 @@ class ShiftWidget : AppWidgetProvider() {
             }
             v.setOnClickPendingIntent(R.id.btnPrev, broadcast(ctx, ACTION_PREV, 10))
             v.setOnClickPendingIntent(R.id.btnNext, broadcast(ctx, ACTION_NEXT, 11))
-            v.setOnClickPendingIntent(R.id.btnToday, broadcast(ctx, ACTION_TODAY, 12))
+            v.setOnClickPendingIntent(
+                R.id.btnToday, if (configured) broadcast(ctx, ACTION_TODAY, 12) else openApp(ctx)
+            )
             v.setOnClickPendingIntent(R.id.btnSettings, openApp(ctx))
 
             // 그 주 일요일부터 시작한다
@@ -128,8 +134,8 @@ class ShiftWidget : AppWidgetProvider() {
                     WidgetIds.HOLIDAY[i], if (holiday != null) View.VISIBLE else View.GONE
                 )
 
-                if (inMonth) {
-                    val s = Schedule.at(ctx, date)
+                val s = if (inMonth) Schedule.at(ctx, date) else null
+                if (s != null) {
                     v.setTextViewText(WidgetIds.BADGE[i], s.label)
                     v.setInt(WidgetIds.BADGE[i], "setBackgroundResource", Palette.bg(s))
                     v.setTextColor(WidgetIds.BADGE[i], Palette.fg(s))
