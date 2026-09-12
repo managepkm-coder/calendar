@@ -217,10 +217,13 @@ class MainActivity : Activity() {
     private fun openSettings() {
         AlertDialog.Builder(this)
             .setTitle("설정")
-            .setItems(arrayOf("오늘의 근무 맞추기", "출근 알람", "직접 지정한 날짜 모두 지우기")) { _, which ->
+            .setItems(
+                arrayOf("오늘의 근무 맞추기", "출근 알람", "캘린더에 내보내기", "직접 지정한 날짜 모두 지우기")
+            ) { _, which ->
                 when (which) {
                     0 -> openTodayShift()
                     1 -> openAlarms()
+                    2 -> exportToCalendar()
                     else -> {
                         Schedule.clearOverrides(this)
                         applyChange("직접 지정한 날짜를 모두 지웠습니다")
@@ -275,6 +278,58 @@ class MainActivity : Activity() {
             openAlarms()
         }
         dialog.show()
+    }
+
+    /** 근무를 폰 캘린더에 내보낸다. Google 계정을 고르면 클라우드로 동기화된다. */
+    private fun exportToCalendar() {
+        if (!Schedule.isConfigured(this)) {
+            Toast.makeText(this, "먼저 오늘의 근무를 정해주세요", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val need = arrayOf(
+            android.Manifest.permission.READ_CALENDAR, android.Manifest.permission.WRITE_CALENDAR
+        )
+        if (need.any { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }) {
+            requestPermissions(need, 2)
+            return
+        }
+        val targets = CalendarExport.targets(this)
+        if (targets.isEmpty()) {
+            Toast.makeText(this, "쓸 수 있는 캘린더가 없습니다", Toast.LENGTH_LONG).show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle("어느 캘린더에 넣을까요")
+            .setItems(targets.map { "${it.name}\n${it.account}" }.toTypedArray()) { _, i ->
+                pickExportRange(targets[i])
+            }
+            .setNegativeButton("닫기", null)
+            .show()
+    }
+
+    private fun pickExportRange(target: CalendarExport.Target) {
+        val months = longArrayOf(3, 6, 12)
+        AlertDialog.Builder(this)
+            .setTitle("${target.name}  ·  기간")
+            .setItems(months.map { "오늘부터 ${it}개월" }.toTypedArray()) { _, i ->
+                val n = CalendarExport.export(this, target.id, months[i])
+                Toast.makeText(this, "일정 ${n}개를 넣었습니다", Toast.LENGTH_LONG).show()
+            }
+            .setNeutralButton("넣었던 일정 지우기") { _, _ ->
+                val n = CalendarExport.clear(this, target.id)
+                Toast.makeText(this, "일정 ${n}개를 지웠습니다", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("닫기", null)
+            .show()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 2 && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+            exportToCalendar()
+        }
     }
 
     /** 안드로이드 13 이상에서는 알림 권한을 따로 받아야 소리가 난다. */
