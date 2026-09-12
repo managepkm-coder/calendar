@@ -149,18 +149,46 @@ class MainActivity : Activity() {
         return col
     }
 
-    /** 하루만 다르게 지정 (교대·연차) */
+    /** 날짜를 누르면 주기 맞추기가 기본. 하루만 바꾸는 것은 한 단계 아래에 둔다. */
     private fun openDay(date: LocalDate) {
-        val choices = Shift.entries
-        val items = (choices.map { it.full } + "기본값으로 되돌리기").toTypedArray()
+        val cycle = Shift.CYCLE
+        val items = (cycle.map { it.full } + listOf("이 날만 바꾸기 (연차·교대)", "기본값으로 되돌리기"))
+            .toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("%d. %02d. %02d".format(date.year, date.monthValue, date.dayOfMonth))
+            .setMessage("근무를 고르면 이 날을 기준으로 모든 날짜가 다시 계산됩니다.")
             .setItems(items) { _, which ->
-                Schedule.setOverride(this, date, choices.getOrNull(which))
-                ShiftWidget.refreshAll(this)
-                render()
+                when (which) {
+                    in cycle.indices -> {
+                        Schedule.setShiftOn(this, date, cycle[which])
+                        applyChange()
+                    }
+                    cycle.size -> openDayOnly(date)
+                    else -> { Schedule.setOverride(this, date, null); applyChange() }
+                }
             }
+            .setNegativeButton("닫기", null)
             .show()
+    }
+
+    /** 이 하루만 바꾼다 — 교대나 연차처럼 주기에서 벗어나는 날 */
+    private fun openDayOnly(date: LocalDate) {
+        val choices = Shift.entries
+        AlertDialog.Builder(this)
+            .setTitle("%02d. %02d 하루만".format(date.monthValue, date.dayOfMonth))
+            .setMessage("이 날짜만 바뀌고 나머지 주기는 그대로입니다.")
+            .setItems(choices.map { it.full }.toTypedArray()) { _, which ->
+                Schedule.setOverride(this, date, choices[which])
+                applyChange()
+            }
+            .setNegativeButton("닫기", null)
+            .show()
+    }
+
+    private fun applyChange() {
+        ShiftWidget.refreshAll(this)
+        ShiftWidget.scheduleMidnight(this)
+        render()
     }
 
     private fun openSettings() {
@@ -169,14 +197,11 @@ class MainActivity : Activity() {
             .setMessage("한 번만 맞추면 나머지 날짜는 자동으로 계산됩니다.")
             .setItems(Shift.CYCLE.map { it.full }.toTypedArray()) { _, which ->
                 Schedule.setTodayShift(this, Shift.CYCLE[which])
-                ShiftWidget.refreshAll(this)
-                ShiftWidget.scheduleMidnight(this)
-                render()
+                applyChange()
             }
             .setNeutralButton("직접 지정한 날짜 모두 지우기") { _, _ ->
                 Schedule.clearOverrides(this)
-                ShiftWidget.refreshAll(this)
-                render()
+                applyChange()
             }
             .setNegativeButton("닫기", null)
             .show()

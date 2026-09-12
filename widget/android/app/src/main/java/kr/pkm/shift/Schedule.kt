@@ -36,13 +36,19 @@ object Schedule {
 
     fun offset(ctx: Context): Int = prefs(ctx).getInt(KEY_OFFSET, 0)
 
-    /** "오늘은 OO 근무"만 알려주면 나머지 주기가 전부 맞춰집니다. */
-    fun setTodayShift(ctx: Context, shift: Shift) {
+    /** "이 날은 OO 근무"만 알려주면 나머지 날짜가 전부 맞춰집니다.
+     *  그 날에 걸어둔 하루 지정은 결과를 가리므로 함께 지웁니다. */
+    fun setShiftOn(ctx: Context, date: LocalDate, shift: Shift) {
         val n = Shift.CYCLE.size
         val i = Shift.CYCLE.indexOf(shift)
         if (i < 0) return
-        prefs(ctx).edit().putInt(KEY_OFFSET, ((i - base(LocalDate.now())) % n + n) % n).apply()
+        prefs(ctx).edit()
+            .putInt(KEY_OFFSET, ((i - base(date)) % n + n) % n)
+            .remove(OVERRIDE + date)
+            .apply()
     }
+
+    fun setTodayShift(ctx: Context, shift: Shift) = setShiftOn(ctx, LocalDate.now(), shift)
 
     /** 위젯이 보여주는 달 (이번 달 기준 +- 개월). 0 이면 이번 달. */
     fun monthOffset(ctx: Context): Int = prefs(ctx).getInt(KEY_MONTH, 0)
