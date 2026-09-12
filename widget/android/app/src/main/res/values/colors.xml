@@ -5,4 +5,5 @@
     <color name="text_muted">#8E8E93</color>
     <color name="screen_bg">#E9E7EE</color>
     <color name="today_bg">#E8F1FD</color>
+    <color name="divider">#E8E8EC</color>
 </resources>

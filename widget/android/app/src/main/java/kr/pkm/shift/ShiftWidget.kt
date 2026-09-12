@@ -99,6 +99,7 @@ class ShiftWidget : AppWidgetProvider() {
             v.removeAllViews(R.id.weeks)
             for (w in 0 until weeks) {
                 val row = RemoteViews(ctx.packageName, R.layout.widget_week)
+                if (w == 0) row.setViewVisibility(R.id.weekDivider, View.GONE)
                 for (d in 0 until 7) {
                     val date = start.plusDays((w * 7L + d))
                     row.addView(R.id.weekRow, cell(ctx, date, date.monthValue == month.monthValue))
