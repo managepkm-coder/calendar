@@ -2,7 +2,9 @@ package kr.pkm.shift
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.TimePickerDialog
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Typeface
 import android.os.Bundle
 import android.util.TypedValue
@@ -207,23 +209,80 @@ class MainActivity : Activity() {
     private fun applyChange(message: String) {
         ShiftWidget.refreshAll(this)
         ShiftWidget.scheduleMidnight(this)
+        Alarms.rescheduleAll(this)      // 근무가 바뀌면 알람 날짜도 달라진다
         render()
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
     private fun openSettings() {
         AlertDialog.Builder(this)
+            .setTitle("설정")
+            .setItems(arrayOf("오늘의 근무 맞추기", "출근 알람", "직접 지정한 날짜 모두 지우기")) { _, which ->
+                when (which) {
+                    0 -> openTodayShift()
+                    1 -> openAlarms()
+                    else -> {
+                        Schedule.clearOverrides(this)
+                        applyChange("직접 지정한 날짜를 모두 지웠습니다")
+                    }
+                }
+            }
+            .setNegativeButton("닫기", null)
+            .show()
+    }
+
+    private fun openTodayShift() {
+        AlertDialog.Builder(this)
             .setTitle("오늘의 근무  ·  전체 주기 맞추기")
             .setItems(Shift.CYCLE.map { it.full }.toTypedArray()) { _, which ->
                 Schedule.setTodayShift(this, Shift.CYCLE[which])
                 applyChange("오늘을 ${Shift.CYCLE[which].full}으로 맞췄습니다 · 전체 이동")
             }
-            .setNeutralButton("직접 지정한 날짜 모두 지우기") { _, _ ->
-                Schedule.clearOverrides(this)
-                applyChange("직접 지정한 날짜를 모두 지웠습니다")
-            }
             .setNegativeButton("닫기", null)
             .show()
+    }
+
+    /** 근무 종류별 출근 알람. 해당 근무인 날에만 울린다. */
+    private fun openAlarms() {
+        val items = Alarms.TARGETS
+            .map { "${it.full}   ${Alarms.label(Alarms.timeOf(this, it))}" }
+            .toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("출근 알람  ·  근무별 시각")
+            .setItems(items) { _, which -> pickAlarmTime(Alarms.TARGETS[which]) }
+            .setNegativeButton("닫기", null)
+            .show()
+    }
+
+    private fun pickAlarmTime(shift: Shift) {
+        val now = Alarms.timeOf(this, shift) ?: (6 * 60)
+        val dialog = TimePickerDialog(
+            this,
+            { _, h, m ->
+                Alarms.setTime(this, shift, h * 60 + m)
+                askNotificationPermission()
+                Toast.makeText(
+                    this, "${shift.full} 출근 알람 ${Alarms.label(h * 60 + m)}", Toast.LENGTH_SHORT
+                ).show()
+                openAlarms()
+            },
+            now / 60, now % 60, true
+        )
+        dialog.setTitle("${shift.full} 출근 시각")
+        dialog.setButton(AlertDialog.BUTTON_NEUTRAL, "알람 끄기") { _, _ ->
+            Alarms.setTime(this, shift, null)
+            Toast.makeText(this, "${shift.full} 알람을 껐습니다", Toast.LENGTH_SHORT).show()
+            openAlarms()
+        }
+        dialog.show()
+    }
+
+    /** 안드로이드 13 이상에서는 알림 권한을 따로 받아야 소리가 난다. */
+    private fun askNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT < 33) return
+        val granted = checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!granted) requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1)
     }
 
     // 좌우 스와이프로 달 이동

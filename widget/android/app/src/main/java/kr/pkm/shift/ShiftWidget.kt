@@ -69,6 +69,7 @@ class ShiftWidget : AppWidgetProvider() {
         }
 
         fun backToThisMonth(ctx: Context) {
+            Alarms.rescheduleAll(ctx)       // 날짜가 넘어가면 다음 알람도 다시 계산한다
             alarmManager(ctx).cancel(monthResetIntent(ctx))
             if (Schedule.monthOffset(ctx) != 0) {
                 Schedule.setMonthOffset(ctx, 0)
