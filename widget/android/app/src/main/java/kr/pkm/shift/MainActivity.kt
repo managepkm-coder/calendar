@@ -69,8 +69,12 @@ class MainActivity : Activity() {
         findViewById<TextView>(R.id.ym).text = "%d. %02d".format(month.year, month.monthValue)
 
         val today = LocalDate.now()
-        findViewById<TextView>(R.id.sub).text =
-            "오늘 %02d.%02d · %s".format(today.monthValue, today.dayOfMonth, Schedule.at(this, today).full)
+        // 어느 빌드가 깔려 있는지 화면에서 바로 확인할 수 있도록 버전을 함께 보여준다
+        val version = runCatching {
+            packageManager.getPackageInfo(packageName, 0).versionName
+        }.getOrNull() ?: "?"
+        findViewById<TextView>(R.id.sub).text = "오늘 %02d.%02d · %s   ·   v%s".format(
+            today.monthValue, today.dayOfMonth, Schedule.at(this, today).full, version)
 
         // 그 주의 일요일부터 시작해 필요한 주 수만큼만 그린다
         val startDow = month.dayOfWeek.value % 7          // 월=1..일=7 → 일=0

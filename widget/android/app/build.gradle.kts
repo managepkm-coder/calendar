@@ -13,8 +13,8 @@ android {
         applicationId = "kr.pkm.geunmupyo"
         minSdk = 26          // java.time 사용
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.4"
     }
 
     // 저장소에 들어 있는 고정 키로 서명합니다.
