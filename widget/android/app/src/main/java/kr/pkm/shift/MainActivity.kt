@@ -248,7 +248,7 @@ class MainActivity : Activity() {
     /** 근무 종류별 출근 알람. 해당 근무인 날에만 울린다. */
     private fun openAlarms() {
         val items = Alarms.TARGETS
-            .map { "${it.full}   ${Alarms.label(Alarms.timeOf(this, it))}" }
+            .map { "${it.full}   ${Alarms.label(this, Alarms.timeOf(this, it))}" }
             .toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("출근 알람  ·  근무별 시각")
@@ -265,11 +265,13 @@ class MainActivity : Activity() {
                 Alarms.setTime(this, shift, h * 60 + m)
                 askNotificationPermission()
                 Toast.makeText(
-                    this, "${shift.full} 출근 알람 ${Alarms.label(h * 60 + m)}", Toast.LENGTH_SHORT
+                    this, "${shift.full} 출근 알람 ${Alarms.label(this, h * 60 + m)}", Toast.LENGTH_SHORT
                 ).show()
                 openAlarms()
             },
-            now / 60, now % 60, true
+            now / 60, now % 60,
+            // 폰의 시간 표시 설정을 따른다. true 로 고정하면 오전/오후를 고를 수 없다.
+            android.text.format.DateFormat.is24HourFormat(this)
         )
         dialog.setTitle("${shift.full} 출근 시각")
         dialog.setButton(AlertDialog.BUTTON_NEUTRAL, "알람 끄기") { _, _ ->

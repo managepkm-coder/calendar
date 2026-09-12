@@ -10,6 +10,7 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import android.text.format.DateFormat
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -35,8 +36,15 @@ object Alarms {
         rescheduleAll(ctx)
     }
 
-    fun label(minutes: Int?): String =
-        if (minutes == null) "꺼짐" else "%02d:%02d".format(minutes / 60, minutes % 60)
+    /** 폰이 12시간제면 오전/오후로, 24시간제면 0~23 시로 보여준다. */
+    fun label(ctx: Context, minutes: Int?): String {
+        if (minutes == null) return "꺼짐"
+        val h = minutes / 60
+        val m = minutes % 60
+        if (DateFormat.is24HourFormat(ctx)) return "%02d:%02d".format(h, m)
+        val half = if (h % 12 == 0) 12 else h % 12
+        return "%s %d:%02d".format(if (h < 12) "오전" else "오후", half, m)
+    }
 
     private fun alarmManager(ctx: Context) =
         ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
