@@ -61,42 +61,10 @@ class ShiftWidget : AppWidgetProvider() {
             ids.forEach { mgr.updateAppWidget(it, buildViews(ctx)) }
         }
 
-        /** 달력 한 칸. 이번 달이 아닌 날은 날짜만 흐리게 두고 근무 배지는 숨긴다. */
-        private fun cell(ctx: Context, date: LocalDate, inMonth: Boolean): RemoteViews {
-            val c = RemoteViews(ctx.packageName, R.layout.widget_cell)
-            val holiday = Holidays.nameOf(date)
-
-            c.setTextViewText(R.id.cellDate, date.dayOfMonth.toString())
-            if (inMonth && holiday != null) {
-                c.setTextViewText(R.id.cellHoliday, holiday)
-            } else {
-                c.setViewVisibility(R.id.cellHoliday, View.GONE)
-            }
-            c.setTextColor(R.id.cellDate, when {
-                !inMonth -> ctx.getColor(R.color.text_muted)
-                holiday != null || date.dayOfWeek.value == 7 -> SUNDAY
-                date.dayOfWeek.value == 6 -> SATURDAY
-                else -> ctx.getColor(R.color.text_primary)
-            })
-
-            if (inMonth) {
-                val s = Schedule.at(ctx, date)
-                c.setTextViewText(R.id.cellBadge, s.label)
-                c.setInt(R.id.cellBadge, "setBackgroundResource", Palette.bg(s))
-                c.setTextColor(R.id.cellBadge, Palette.fg(s))
-                if (date == LocalDate.now()) {
-                    c.setInt(R.id.cellRoot, "setBackgroundResource", R.drawable.bg_today)
-                }
-            } else {
-                // 자리는 차지하되 보이지 않게 해서 주마다 높이가 흔들리지 않도록 한다
-                c.setViewVisibility(R.id.cellBadge, View.INVISIBLE)
-            }
-            return c
-        }
-
         private fun buildViews(ctx: Context): RemoteViews {
             val v = RemoteViews(ctx.packageName, R.layout.widget)
-            val month = LocalDate.now().withDayOfMonth(1)
+            val today = LocalDate.now()
+            val month = today.withDayOfMonth(1)
                 .plusMonths(Schedule.monthOffset(ctx).toLong())
 
             v.setTextViewText(R.id.ym, "%d. %02d".format(month.year, month.monthValue))
@@ -109,23 +77,51 @@ class ShiftWidget : AppWidgetProvider() {
             v.setOnClickPendingIntent(R.id.btnToday, broadcast(ctx, ACTION_TODAY, 12))
             v.setOnClickPendingIntent(R.id.btnSettings, openApp(ctx))
 
-            // 그 주 일요일부터 시작해 필요한 주 수만큼만 그린다
+            // 그 주 일요일부터 시작한다
             val startDow = month.dayOfWeek.value % 7          // 월=1..일=7 → 일=0
             val start = month.minusDays(startDow.toLong())
-            val weeks = (startDow + month.lengthOfMonth() + 6) / 7
+            val usedWeeks = (startDow + month.lengthOfMonth() + 6) / 7
 
-            v.removeAllViews(R.id.weeks)
-            for (w in 0 until weeks) {
-                val row = RemoteViews(ctx.packageName, R.layout.widget_week)
-                if (w == 0) row.setViewVisibility(R.id.weekDivider, View.GONE)
-                for (d in 0 until 7) {
-                    val date = start.plusDays((w * 7L + d))
-                    row.addView(R.id.weekRow, cell(ctx, date, date.monthValue == month.monthValue))
-                }
-                v.addView(R.id.weeks, row)
+            // 쓰지 않는 주 행은 숨겨서 남은 주들이 높이를 나눠 갖게 한다
+            WidgetIds.WEEK.forEachIndexed { w, id ->
+                v.setViewVisibility(id, if (w < usedWeeks) View.VISIBLE else View.GONE)
             }
 
-            v.setOnClickPendingIntent(R.id.weeks, openApp(ctx))
+            for (i in 0 until 42) {
+                val date = start.plusDays(i.toLong())
+                val inMonth = i < usedWeeks * 7 && date.monthValue == month.monthValue
+                val holiday = if (inMonth) Holidays.nameOf(date) else null
+
+                v.setTextViewText(WidgetIds.DATE[i], date.dayOfMonth.toString())
+                v.setTextColor(WidgetIds.DATE[i], when {
+                    !inMonth -> ctx.getColor(R.color.text_muted)
+                    holiday != null || date.dayOfWeek.value == 7 -> SUNDAY
+                    date.dayOfWeek.value == 6 -> SATURDAY
+                    else -> ctx.getColor(R.color.text_primary)
+                })
+
+                v.setTextViewText(WidgetIds.HOLIDAY[i], holiday ?: "")
+                v.setViewVisibility(
+                    WidgetIds.HOLIDAY[i], if (holiday != null) View.VISIBLE else View.GONE
+                )
+
+                if (inMonth) {
+                    val s = Schedule.at(ctx, date)
+                    v.setTextViewText(WidgetIds.BADGE[i], s.label)
+                    v.setInt(WidgetIds.BADGE[i], "setBackgroundResource", Palette.bg(s))
+                    v.setTextColor(WidgetIds.BADGE[i], Palette.fg(s))
+                    v.setViewVisibility(WidgetIds.BADGE[i], View.VISIBLE)
+                } else {
+                    // 자리는 지키되 보이지 않게 해 칸 높이가 흔들리지 않도록 한다
+                    v.setViewVisibility(WidgetIds.BADGE[i], View.INVISIBLE)
+                }
+
+                v.setInt(
+                    WidgetIds.CELL[i], "setBackgroundResource",
+                    if (inMonth && date == today) R.drawable.bg_today else 0
+                )
+                v.setOnClickPendingIntent(WidgetIds.CELL[i], openApp(ctx))
+            }
             return v
         }
 
