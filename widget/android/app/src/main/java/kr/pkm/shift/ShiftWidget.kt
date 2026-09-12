@@ -120,7 +120,8 @@ class ShiftWidget : AppWidgetProvider() {
                     WidgetIds.CELL[i], "setBackgroundResource",
                     if (inMonth && date == today) R.drawable.bg_today else 0
                 )
-                v.setOnClickPendingIntent(WidgetIds.CELL[i], openApp(ctx))
+                // 그 날짜의 수정 창이 바로 열리도록 날짜를 함께 넘긴다
+                v.setOnClickPendingIntent(WidgetIds.CELL[i], openApp(ctx, date, 100 + i))
             }
             return v
         }
@@ -132,11 +133,17 @@ class ShiftWidget : AppWidgetProvider() {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
 
-        private fun openApp(ctx: Context): PendingIntent =
-            PendingIntent.getActivity(
-                ctx, 0, Intent(ctx, MainActivity::class.java),
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        /** date 를 주면 앱이 그 날짜의 수정 창을 띄운다. */
+        private fun openApp(
+            ctx: Context, date: LocalDate? = null, code: Int = 0
+        ): PendingIntent {
+            val i = Intent(ctx, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            if (date != null) i.putExtra(MainActivity.EXTRA_DATE, date.toString())
+            return PendingIntent.getActivity(
+                ctx, code, i, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
+        }
 
         private fun alarmManager(ctx: Context) =
             ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager

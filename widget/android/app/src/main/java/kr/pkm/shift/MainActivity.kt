@@ -2,6 +2,7 @@ package kr.pkm.shift
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
 import android.util.TypedValue
@@ -183,8 +184,9 @@ class MainActivity : Activity() {
         return super.dispatchTouchEvent(ev)
     }
 
-    private companion object {
-        const val SUNDAY = 0xFFE0483C.toInt()
-        const val SATURDAY = 0xFF2F6FD0.toInt()
+    companion object {
+        const val EXTRA_DATE = "kr.pkm.shift.DATE"
+        private const val SUNDAY = 0xFFE0483C.toInt()
+        private const val SATURDAY = 0xFF2F6FD0.toInt()
     }
 }
