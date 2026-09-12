@@ -36,6 +36,23 @@ class MainActivity : Activity() {
 
         buildDowHeader()
         render()
+        openFromWidget(intent)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        openFromWidget(intent)
+    }
+
+    /** 위젯에서 날짜를 눌러 들어온 경우, 그 달로 옮기고 수정 창을 띄운다. */
+    private fun openFromWidget(intent: Intent?) {
+        val raw = intent?.getStringExtra(EXTRA_DATE) ?: return
+        intent.removeExtra(EXTRA_DATE)          // 화면 회전 시 다시 뜨지 않도록
+        val date = runCatching { LocalDate.parse(raw) }.getOrNull() ?: return
+        month = date.withDayOfMonth(1)
+        render()
+        openDay(date)
     }
 
     private fun dp(v: Int) = TypedValue.applyDimension(
