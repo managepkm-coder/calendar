@@ -6,21 +6,37 @@
     android:background="@drawable/bg_widget"
     android:padding="12dp">
 
-    <!-- 달 이름을 가운데 두기 위해 좌우에 같은 비중을 준다 -->
+    <!-- 오늘 | ‹ 년.월 › | 설정 — 좌우에 같은 비중을 줘서 달 이름이 가운데 온다 -->
     <LinearLayout
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="horizontal" android:gravity="center_vertical"
-        android:paddingBottom="8dp">
-        <TextView android:id="@+id/todayInfo"
+        android:paddingBottom="6dp">
+
+        <TextView android:id="@+id/btnToday"
             android:layout_width="0dp" android:layout_height="wrap_content"
             android:layout_weight="1" android:gravity="start"
-            android:textSize="12sp" />
+            android:text="오늘" android:textSize="13sp"
+            android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingEnd="8dp" />
+
+        <TextView android:id="@+id/btnPrev"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="‹" android:textSize="21sp"
+            android:paddingStart="8dp" android:paddingEnd="8dp" />
+
         <TextView android:id="@+id/ym"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:textSize="17sp" android:textStyle="bold" />
-        <TextView
+
+        <TextView android:id="@+id/btnNext"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="›" android:textSize="21sp"
+            android:paddingStart="8dp" android:paddingEnd="8dp" />
+
+        <TextView android:id="@+id/btnSettings"
             android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:layout_weight="1" android:gravity="end"
+            android:text="⚙" android:textSize="16sp"
+            android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="8dp" />
     </LinearLayout>
 
     <LinearLayout
@@ -49,7 +65,6 @@
             android:textSize="11sp" android:textStyle="bold" android:textColor="#2F6FD0" />
     </LinearLayout>
 
-    <!-- 주 행이 코드에서 채워지며, 남는 높이를 모두 나눠 갖는다 -->
     <LinearLayout android:id="@+id/weeks"
         android:layout_width="match_parent" android:layout_height="0dp"
         android:layout_weight="1" android:orientation="vertical" />

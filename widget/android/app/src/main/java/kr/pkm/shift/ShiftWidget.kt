@@ -30,11 +30,16 @@ class ShiftWidget : AppWidgetProvider() {
     override fun onReceive(ctx: Context, intent: Intent) {
         super.onReceive(ctx, intent)
         when (intent.action) {
+            ACTION_PREV -> { Schedule.setMonthOffset(ctx, Schedule.monthOffset(ctx) - 1); refreshAll(ctx) }
+            ACTION_NEXT -> { Schedule.setMonthOffset(ctx, Schedule.monthOffset(ctx) + 1); refreshAll(ctx) }
+            ACTION_TODAY -> { Schedule.setMonthOffset(ctx, 0); refreshAll(ctx) }
+
             ACTION_REFRESH,
             Intent.ACTION_DATE_CHANGED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
             Intent.ACTION_BOOT_COMPLETED -> {
+                Schedule.setMonthOffset(ctx, 0)
                 refreshAll(ctx)
                 scheduleMidnight(ctx)
             }
@@ -43,6 +48,9 @@ class ShiftWidget : AppWidgetProvider() {
 
     companion object {
         const val ACTION_REFRESH = "kr.pkm.shift.REFRESH"
+        const val ACTION_PREV = "kr.pkm.shift.PREV"
+        const val ACTION_NEXT = "kr.pkm.shift.NEXT"
+        const val ACTION_TODAY = "kr.pkm.shift.TODAY"
 
         private const val SUNDAY = 0xFFE0483C.toInt()
         private const val SATURDAY = 0xFF2F6FD0.toInt()
@@ -59,6 +67,11 @@ class ShiftWidget : AppWidgetProvider() {
             val holiday = Holidays.nameOf(date)
 
             c.setTextViewText(R.id.cellDate, date.dayOfMonth.toString())
+            if (inMonth && holiday != null) {
+                c.setTextViewText(R.id.cellHoliday, holiday)
+            } else {
+                c.setViewVisibility(R.id.cellHoliday, View.GONE)
+            }
             c.setTextColor(R.id.cellDate, when {
                 !inMonth -> ctx.getColor(R.color.text_muted)
                 holiday != null || date.dayOfWeek.value == 7 -> SUNDAY
@@ -83,13 +96,18 @@ class ShiftWidget : AppWidgetProvider() {
 
         private fun buildViews(ctx: Context): RemoteViews {
             val v = RemoteViews(ctx.packageName, R.layout.widget)
-            val today = LocalDate.now()
-            val month = today.withDayOfMonth(1)
+            val month = LocalDate.now().withDayOfMonth(1)
+                .plusMonths(Schedule.monthOffset(ctx).toLong())
 
             v.setTextViewText(R.id.ym, "%d. %02d".format(month.year, month.monthValue))
             v.setTextColor(R.id.ym, ctx.getColor(R.color.text_primary))
-            v.setTextViewText(R.id.todayInfo, "오늘 · ${Schedule.at(ctx, today).full}")
-            v.setTextColor(R.id.todayInfo, ctx.getColor(R.color.text_muted))
+            for (id in intArrayOf(R.id.btnToday, R.id.btnPrev, R.id.btnNext, R.id.btnSettings)) {
+                v.setTextColor(id, ctx.getColor(R.color.text_muted))
+            }
+            v.setOnClickPendingIntent(R.id.btnPrev, broadcast(ctx, ACTION_PREV, 10))
+            v.setOnClickPendingIntent(R.id.btnNext, broadcast(ctx, ACTION_NEXT, 11))
+            v.setOnClickPendingIntent(R.id.btnToday, broadcast(ctx, ACTION_TODAY, 12))
+            v.setOnClickPendingIntent(R.id.btnSettings, openApp(ctx))
 
             // 그 주 일요일부터 시작해 필요한 주 수만큼만 그린다
             val startDow = month.dayOfWeek.value % 7          // 월=1..일=7 → 일=0
@@ -107,16 +125,22 @@ class ShiftWidget : AppWidgetProvider() {
                 v.addView(R.id.weeks, row)
             }
 
-            // 위젯을 누르면 앱이 열립니다
-            v.setOnClickPendingIntent(
-                R.id.root,
-                PendingIntent.getActivity(
-                    ctx, 0, Intent(ctx, MainActivity::class.java),
-                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-                )
-            )
+            v.setOnClickPendingIntent(R.id.weeks, openApp(ctx))
             return v
         }
+
+        /** 위젯 버튼이 자기 자신에게 보내는 브로드캐스트 */
+        private fun broadcast(ctx: Context, action: String, code: Int): PendingIntent =
+            PendingIntent.getBroadcast(
+                ctx, code, Intent(ctx, ShiftWidget::class.java).setAction(action),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
+        private fun openApp(ctx: Context): PendingIntent =
+            PendingIntent.getActivity(
+                ctx, 0, Intent(ctx, MainActivity::class.java),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
 
         private fun alarmManager(ctx: Context) =
             ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager

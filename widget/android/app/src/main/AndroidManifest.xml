@@ -25,6 +25,9 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="kr.pkm.shift.REFRESH" />
+                <action android:name="kr.pkm.shift.PREV" />
+                <action android:name="kr.pkm.shift.NEXT" />
+                <action android:name="kr.pkm.shift.TODAY" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>

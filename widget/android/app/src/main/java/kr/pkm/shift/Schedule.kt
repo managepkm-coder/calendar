@@ -25,6 +25,7 @@ object Schedule {
     private const val PREFS = "shift"
     private const val KEY_OFFSET = "offset"
     private const val OVERRIDE = "ov:"
+    private const val KEY_MONTH = "widgetMonth"
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -41,6 +42,13 @@ object Schedule {
         val i = Shift.CYCLE.indexOf(shift)
         if (i < 0) return
         prefs(ctx).edit().putInt(KEY_OFFSET, ((i - base(LocalDate.now())) % n + n) % n).apply()
+    }
+
+    /** 위젯이 보여주는 달 (이번 달 기준 +- 개월). 0 이면 이번 달. */
+    fun monthOffset(ctx: Context): Int = prefs(ctx).getInt(KEY_MONTH, 0)
+
+    fun setMonthOffset(ctx: Context, v: Int) {
+        prefs(ctx).edit().putInt(KEY_MONTH, v.coerceIn(-600, 600)).apply()
     }
 
     /** 하루만 다르게 지정한 값 (교대·연차). 없으면 null. */
