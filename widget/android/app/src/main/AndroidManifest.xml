@@ -29,6 +29,9 @@
                 <action android:name="kr.pkm.shift.PREV" />
                 <action android:name="kr.pkm.shift.NEXT" />
                 <action android:name="kr.pkm.shift.TODAY" />
+                <action android:name="kr.pkm.shift.RESET_MONTH" />
+                <!-- 기기에 따라 전달되기도 하므로 함께 받아둔다 -->
+                <action android:name="android.intent.action.USER_PRESENT" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>

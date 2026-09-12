@@ -30,17 +30,17 @@ class ShiftWidget : AppWidgetProvider() {
     override fun onReceive(ctx: Context, intent: Intent) {
         super.onReceive(ctx, intent)
         when (intent.action) {
-            ACTION_PREV -> { Schedule.setMonthOffset(ctx, Schedule.monthOffset(ctx) - 1); refreshAll(ctx) }
-            ACTION_NEXT -> { Schedule.setMonthOffset(ctx, Schedule.monthOffset(ctx) + 1); refreshAll(ctx) }
-            ACTION_TODAY -> { Schedule.setMonthOffset(ctx, 0); refreshAll(ctx) }
+            ACTION_PREV -> moveMonth(ctx, -1)
+            ACTION_NEXT -> moveMonth(ctx, +1)
+            ACTION_TODAY, ACTION_RESET_MONTH, Intent.ACTION_USER_PRESENT,
+            Intent.ACTION_SCREEN_ON -> backToThisMonth(ctx)
 
             ACTION_REFRESH,
             Intent.ACTION_DATE_CHANGED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
             Intent.ACTION_BOOT_COMPLETED -> {
-                Schedule.setMonthOffset(ctx, 0)
-                refreshAll(ctx)
+                backToThisMonth(ctx)
                 scheduleMidnight(ctx)
             }
         }
@@ -51,9 +51,32 @@ class ShiftWidget : AppWidgetProvider() {
         const val ACTION_PREV = "kr.pkm.shift.PREV"
         const val ACTION_NEXT = "kr.pkm.shift.NEXT"
         const val ACTION_TODAY = "kr.pkm.shift.TODAY"
+        const val ACTION_RESET_MONTH = "kr.pkm.shift.RESET_MONTH"
+
+        /** 달을 옮긴 뒤 이만큼 지나면 이번 달로 되돌린다. */
+        private const val MONTH_RESET_MS = 3 * 60 * 1000L
 
         private const val SUNDAY = 0xFFE0483C.toInt()
         private const val SATURDAY = 0xFF2F6FD0.toInt()
+
+        private fun moveMonth(ctx: Context, delta: Int) {
+            Schedule.setMonthOffset(ctx, Schedule.monthOffset(ctx) + delta)
+            refreshAll(ctx)
+            // 옮겨둔 달에 계속 머물지 않도록 잠시 뒤 되돌릴 알람을 건다
+            alarmManager(ctx).set(
+                AlarmManager.RTC, System.currentTimeMillis() + MONTH_RESET_MS, monthResetIntent(ctx)
+            )
+        }
+
+        fun backToThisMonth(ctx: Context) {
+            alarmManager(ctx).cancel(monthResetIntent(ctx))
+            if (Schedule.monthOffset(ctx) != 0) {
+                Schedule.setMonthOffset(ctx, 0)
+            }
+            refreshAll(ctx)
+        }
+
+        private fun monthResetIntent(ctx: Context) = broadcast(ctx, ACTION_RESET_MONTH, 20)
 
         fun refreshAll(ctx: Context) {
             val mgr = AppWidgetManager.getInstance(ctx)
