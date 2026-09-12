@@ -158,8 +158,11 @@ class MainActivity : Activity() {
     /** 날짜를 누르면 주기 맞추기가 기본. 하루만 바꾸는 것은 한 단계 아래에 둔다. */
     private fun openDay(date: LocalDate) {
         val cycle = Shift.CYCLE
-        val items = (cycle.map { "${it.full}으로 맞추기" } + listOf("이 날만 바꾸기 (연차·교대)", "이 날 지정 해제 (주기대로)"))
-            .toTypedArray()
+        // 손댄 적 없는 날에는 "지정 해제"가 아무 일도 하지 않으므로 아예 숨긴다
+        val pinned = Schedule.overrideOf(this, date) != null
+        val items = (cycle.map { "${it.full}으로 맞추기" } +
+            listOf("이 날만 바꾸기 (연차·교대)") +
+            if (pinned) listOf("이 날 지정 해제 (주기대로)") else emptyList()).toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("%d. %02d. %02d  ·  전체 주기 맞추기".format(date.year, date.monthValue, date.dayOfMonth))
             .setItems(items) { _, which ->

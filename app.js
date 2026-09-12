@@ -107,6 +107,8 @@ function openDay(ts) {
   picked = ts;
   const d = new Date(ts);
   $('#dayTitle').textContent = `${d.getUTCFullYear()}. ${pad(d.getUTCMonth() + 1)}. ${pad(d.getUTCDate())}`;
+  // 손댄 적 없는 날에는 "지정 해제"가 아무 일도 하지 않으므로 숨긴다
+  $('[data-set="clear"]').hidden = !store.overrides[key(ts)];
   $('#daySheet').showModal();
   render();
 }
