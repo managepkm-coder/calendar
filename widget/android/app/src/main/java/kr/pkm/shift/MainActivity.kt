@@ -152,11 +152,10 @@ class MainActivity : Activity() {
     /** 날짜를 누르면 주기 맞추기가 기본. 하루만 바꾸는 것은 한 단계 아래에 둔다. */
     private fun openDay(date: LocalDate) {
         val cycle = Shift.CYCLE
-        val items = (cycle.map { it.full } + listOf("이 날만 바꾸기 (연차·교대)", "기본값으로 되돌리기"))
+        val items = (cycle.map { "${it.full}으로 맞추기" } + listOf("이 날만 바꾸기 (연차·교대)", "기본값으로 되돌리기"))
             .toTypedArray()
         AlertDialog.Builder(this)
-            .setTitle("%d. %02d. %02d".format(date.year, date.monthValue, date.dayOfMonth))
-            .setMessage("근무를 고르면 이 날을 기준으로 모든 날짜가 다시 계산됩니다.")
+            .setTitle("%d. %02d. %02d  ·  전체 주기 맞추기".format(date.year, date.monthValue, date.dayOfMonth))
             .setItems(items) { _, which ->
                 when (which) {
                     in cycle.indices -> {
@@ -175,8 +174,7 @@ class MainActivity : Activity() {
     private fun openDayOnly(date: LocalDate) {
         val choices = Shift.entries
         AlertDialog.Builder(this)
-            .setTitle("%02d. %02d 하루만".format(date.monthValue, date.dayOfMonth))
-            .setMessage("이 날짜만 바뀌고 나머지 주기는 그대로입니다.")
+            .setTitle("%02d. %02d  ·  이 날만 변경".format(date.monthValue, date.dayOfMonth))
             .setItems(choices.map { it.full }.toTypedArray()) { _, which ->
                 Schedule.setOverride(this, date, choices[which])
                 applyChange()
@@ -193,8 +191,7 @@ class MainActivity : Activity() {
 
     private fun openSettings() {
         AlertDialog.Builder(this)
-            .setTitle("오늘의 근무를 선택하세요")
-            .setMessage("한 번만 맞추면 나머지 날짜는 자동으로 계산됩니다.")
+            .setTitle("오늘의 근무  ·  전체 주기 맞추기")
             .setItems(Shift.CYCLE.map { it.full }.toTypedArray()) { _, which ->
                 Schedule.setTodayShift(this, Shift.CYCLE[which])
                 applyChange()
