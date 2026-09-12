@@ -12,6 +12,7 @@ import android.view.View
 import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import java.time.LocalDate
 
 /** 월 단위 근무 달력. 위젯과 같은 Schedule 을 쓰므로 두 화면이 항상 일치합니다. */
@@ -168,11 +169,19 @@ class MainActivity : Activity() {
             .setItems(items) { _, which ->
                 when (which) {
                     in cycle.indices -> {
+                        val before = Schedule.at(this, date)
                         Schedule.setShiftOn(this, date, cycle[which])
-                        applyChange()
+                        applyChange(
+                            if (before == cycle[which])
+                                "${label(date)}은 이미 ${cycle[which].full}입니다"
+                            else "${label(date)}을 ${cycle[which].full}으로 맞췄습니다 · 전체 이동"
+                        )
                     }
                     cycle.size -> openDayOnly(date)
-                    else -> { Schedule.setOverride(this, date, null); applyChange() }
+                    else -> {
+                        Schedule.setOverride(this, date, null)
+                        applyChange("${label(date)} 지정을 해제했습니다")
+                    }
                 }
             }
             .setNegativeButton("닫기", null)
@@ -186,16 +195,20 @@ class MainActivity : Activity() {
             .setTitle("%02d. %02d  ·  이 날만 변경".format(date.monthValue, date.dayOfMonth))
             .setItems(choices.map { it.full }.toTypedArray()) { _, which ->
                 Schedule.setOverride(this, date, choices[which])
-                applyChange()
+                applyChange("${label(date)}만 ${choices[which].full}(으)로 바꿨습니다")
             }
             .setNegativeButton("닫기", null)
             .show()
     }
 
-    private fun applyChange() {
+    private fun label(date: LocalDate) = "%d월 %d일".format(date.monthValue, date.dayOfMonth)
+
+    /** 바뀐 내용을 알려준다 — 고른 값이 원래 값과 같으면 화면이 그대로라 눌린 줄 모른다. */
+    private fun applyChange(message: String) {
         ShiftWidget.refreshAll(this)
         ShiftWidget.scheduleMidnight(this)
         render()
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
     private fun openSettings() {
@@ -203,11 +216,11 @@ class MainActivity : Activity() {
             .setTitle("오늘의 근무  ·  전체 주기 맞추기")
             .setItems(Shift.CYCLE.map { it.full }.toTypedArray()) { _, which ->
                 Schedule.setTodayShift(this, Shift.CYCLE[which])
-                applyChange()
+                applyChange("오늘을 ${Shift.CYCLE[which].full}으로 맞췄습니다 · 전체 이동")
             }
             .setNeutralButton("직접 지정한 날짜 모두 지우기") { _, _ ->
                 Schedule.clearOverrides(this)
-                applyChange()
+                applyChange("직접 지정한 날짜를 모두 지웠습니다")
             }
             .setNegativeButton("닫기", null)
             .show()
