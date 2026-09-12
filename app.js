@@ -13,20 +13,30 @@ const DAY = 86400000;
 const ANCHOR = Date.UTC(2026, 7, 30); // 2026-08-30
 
 const store = {
-  get offset() { return +(localStorage.getItem('shift.offset') || 0); },
-  set offset(v) { localStorage.setItem('shift.offset', String(((v % 4) + 4) % 4)); },
-  get overrides() { try { return JSON.parse(localStorage.getItem('shift.overrides') || '{}'); } catch { return {}; } },
-  set overrides(v) { localStorage.setItem('shift.overrides', JSON.stringify(v)); },
+  // 시크릿 모드나 사이트 데이터 차단 시 접근 자체가 예외를 던지므로 전부 감싼다
+  read(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+  write(k, v) { try { localStorage.setItem(k, v); } catch { /* 저장 불가 - 이번 세션만 유지 */ } },
+
+  // 기준일을 코드에 박아두면 다른 조 사람에게 틀린 표가 그럴듯하게 보인다.
+  // 사용자가 한 번 고르기 전까지는 어떤 근무도 만들어내지 않는다.
+  get configured() { return this.read('shift.offset', null) !== null; },
+
+  get offset() { return +this.read('shift.offset', 0); },
+  set offset(v) { this.write('shift.offset', String(((v % 4) + 4) % 4)); },
+  get overrides() { try { return JSON.parse(this.read('shift.overrides', '{}')); } catch { return {}; } },
+  set overrides(v) { this.write('shift.overrides', JSON.stringify(v)); },
 };
 
 const pad = (n) => String(n).padStart(2, '0');
 const key = (ts) => { const d = new Date(ts); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; };
 const todayTs = () => { const n = new Date(); return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()); };
 
-/** 해당 날짜의 근무. 수동 지정이 있으면 그것을 우선한다. */
+/** 해당 날짜의 근무. 하루 지정이 있으면 그것을 우선한다.
+ *  주기를 아직 정하지 않았으면 null — 빈 칸으로 표시된다. */
 function shiftOf(ts) {
   const ov = store.overrides[key(ts)];
   if (ov) return EXTRA[ov] || CYCLE[+ov] || null;
+  if (!store.configured) return null;
   const n = Math.round((ts - ANCHOR) / DAY);
   return CYCLE[(((n + store.offset) % 4) + 4) % 4];
 }
@@ -42,7 +52,9 @@ function render() {
 
   const t = todayTs();
   const s = shiftOf(t);
-  $('#sub').textContent = `오늘 ${key(t).slice(5).replace('-', '.')} · ${s ? s.name : '-'}`;
+  $('#sub').textContent = s
+    ? `오늘 ${key(t).slice(5).replace('-', '.')} · ${s.name}`
+    : '⚙ 를 눌러 오늘의 근무를 먼저 정하세요';
 
   const first = Date.UTC(y, m, 1);
   const startDow = new Date(first).getUTCDay();
@@ -75,8 +87,8 @@ function render() {
 
     const sh = shiftOf(ts);
     const badge = document.createElement('div');
-    badge.className = `badge ${sh.cls}`;
-    badge.textContent = sh.k;
+    badge.className = 'badge' + (sh ? ` ${sh.cls}` : '');
+    badge.textContent = sh ? sh.k : '';
     if (store.overrides[key(ts)]) badge.classList.add('manual');
     cell.appendChild(badge);
 
@@ -146,3 +158,6 @@ document.addEventListener('touchend', (e) => {
 
 render();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+
+// 아직 근무를 정하지 않았다면 바로 설정을 띄운다
+if (!store.configured) openSettings();
