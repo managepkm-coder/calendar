@@ -39,24 +39,10 @@ class MainActivity : Activity() {
 
         buildDowHeader()
         render()
-        openFromWidget(intent)
+
+        // 근무를 아직 정하지 않았을 때만 설정을 띄운다.
+        // 그 외에는 위젯을 눌러 들어와도 달력만 보여준다.
         if (!Schedule.isConfigured(this)) openSettings()
-    }
-
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        openFromWidget(intent)
-    }
-
-    /** 위젯에서 날짜를 눌러 들어온 경우, 그 달로 옮기고 수정 창을 띄운다. */
-    private fun openFromWidget(intent: Intent?) {
-        val raw = intent?.getStringExtra(EXTRA_DATE) ?: return
-        intent.removeExtra(EXTRA_DATE)          // 화면 회전 시 다시 뜨지 않도록
-        val date = runCatching { LocalDate.parse(raw) }.getOrNull() ?: return
-        month = date.withDayOfMonth(1)
-        render()
-        openDay(date)
     }
 
     private fun dp(v: Int) = TypedValue.applyDimension(
@@ -361,8 +347,7 @@ class MainActivity : Activity() {
         return super.dispatchTouchEvent(ev)
     }
 
-    companion object {
-        const val EXTRA_DATE = "kr.pkm.shift.DATE"
+    private companion object {
         private const val SUNDAY = 0xFFE0483C.toInt()
         private const val SATURDAY = 0xFF2F6FD0.toInt()
     }
