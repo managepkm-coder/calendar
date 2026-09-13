@@ -144,41 +144,49 @@ class MainActivity : Activity() {
         return col
     }
 
-    /** 날짜를 누르면 주기 맞추기가 기본. 하루만 바꾸는 것은 한 단계 아래에 둔다. */
+    /** 날짜를 누르면 나오는 메뉴.
+     *  자주 쓰는 연차·지원근무는 한 번에 고를 수 있도록 첫 화면에 둔다. */
     private fun openDay(date: LocalDate) {
-        val cycle = Shift.CYCLE
-        // 손댄 적 없는 날에는 "지정 해제"가 아무 일도 하지 않으므로 아예 숨긴다
-        val pinned = Schedule.overrideOf(this, date) != null
-        val items = (cycle.map { "${it.full}으로 맞추기" } +
-            listOf("이 날만 바꾸기 (연차·교대)") +
-            if (pinned) listOf("이 날 지정 해제 (주기대로)") else emptyList()).toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("%d. %02d. %02d  ·  전체 주기 맞추기".format(date.year, date.monthValue, date.dayOfMonth))
-            .setItems(items) { _, which ->
-                when (which) {
-                    in cycle.indices -> {
-                        val before = Schedule.at(this, date)
-                        Schedule.setShiftOn(this, date, cycle[which])
-                        applyChange(
-                            if (before == cycle[which])
-                                "${label(date)}은 이미 ${cycle[which].full}입니다"
-                            else "${label(date)}을 ${cycle[which].full}으로 맞췄습니다 · 전체 이동"
-                        )
-                    }
-                    cycle.size -> openDayOnly(date)
-                    else -> {
-                        Schedule.setOverride(this, date, null)
-                        applyChange("${label(date)} 지정을 해제했습니다")
-                    }
-                }
+        // 항목과 동작을 짝지어 만들면 번호를 세다 어긋날 일이 없다
+        val actions = mutableListOf<Pair<String, () -> Unit>>()
+
+        for (sh in Shift.CYCLE) {
+            actions += "${sh.full}으로 맞추기" to {
+                val before = Schedule.at(this, date)
+                Schedule.setShiftOn(this, date, sh)
+                applyChange(
+                    if (before == sh) "${label(date)}은 이미 ${sh.full}입니다"
+                    else "${label(date)}을 ${sh.full}으로 맞췄습니다 · 전체 이동"
+                )
             }
+        }
+
+        for (sh in listOf(Shift.ANNUAL, Shift.SUPPORT)) {
+            actions += "이 날만 ${sh.full}" to {
+                Schedule.setOverride(this, date, sh)
+                applyChange("${label(date)}만 ${sh.full}(으)로 바꿨습니다")
+            }
+        }
+
+        actions += "이 날만 바꾸기 (교대)" to { openDayOnly(date) }
+
+        if (Schedule.overrideOf(this, date) != null) {
+            actions += "이 날 지정 해제 (주기대로)" to {
+                Schedule.setOverride(this, date, null)
+                applyChange("${label(date)} 지정을 해제했습니다")
+            }
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("%d. %02d. %02d".format(date.year, date.monthValue, date.dayOfMonth))
+            .setItems(actions.map { it.first }.toTypedArray()) { _, i -> actions[i].second() }
             .setNegativeButton("닫기", null)
             .show()
     }
 
-    /** 이 하루만 바꾼다 — 교대나 연차처럼 주기에서 벗어나는 날 */
+    /** 주기 근무를 하루만 바꾼다 — 교대로 다른 조 근무를 서는 날 */
     private fun openDayOnly(date: LocalDate) {
-        val choices = Shift.entries
+        val choices = Shift.CYCLE
         AlertDialog.Builder(this)
             .setTitle("%02d. %02d  ·  이 날만 변경".format(date.monthValue, date.dayOfMonth))
             .setItems(choices.map { it.full }.toTypedArray()) { _, which ->
@@ -191,7 +199,6 @@ class MainActivity : Activity() {
 
     private fun label(date: LocalDate) = "%d월 %d일".format(date.monthValue, date.dayOfMonth)
 
-    /** 바뀐 내용을 알려준다 — 고른 값이 원래 값과 같으면 화면이 그대로라 눌린 줄 모른다. */
     private fun applyChange(message: String) {
         ShiftWidget.refreshAll(this)
         ShiftWidget.scheduleMidnight(this)
