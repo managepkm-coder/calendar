@@ -22,6 +22,7 @@ class MainActivity : Activity() {
 
     private var month: LocalDate = LocalDate.now().withDayOfMonth(1)
     private lateinit var grid: GridLayout
+    private var current: AlertDialog? = null
 
     private val dowNames = arrayOf("일", "월", "화", "수", "목", "금", "토")
 
@@ -38,11 +39,48 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.btnSettings).setOnClickListener { openSettings() }
 
         buildDowHeader()
+
+        // 위젯에서 누른 날짜가 있으면 그 달을 펴서 보여준다
+        val tapped = dateOf(intent)
+        if (tapped != null) month = tapped.withDayOfMonth(1)
         render()
 
-        // 근무를 아직 정하지 않았을 때만 설정을 띄운다.
-        // 그 외에는 위젯을 눌러 들어와도 달력만 보여준다.
-        if (!Schedule.isConfigured(this)) openSettings()
+        // 화면이 다시 만들어질 때(회전 등)는 창을 다시 띄우지 않는다
+        if (savedInstanceState == null) when {
+            // 누른 날짜 창을 바로 띄운다. 근무를 정하기 전이어도 이 창에서 맞출 수 있다.
+            tapped != null -> openDay(tapped)
+            // 그 외에는 근무를 아직 정하지 않았을 때만 설정을 띄우고, 달력만 보여준다.
+            !Schedule.isConfigured(this) -> openSettings()
+        }
+    }
+
+    /** 앱이 이미 떠 있는 채로 위젯 날짜를 누르면 여기로 온다 (launchMode=singleTop). */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val tapped = dateOf(intent) ?: return
+        month = tapped.withDayOfMonth(1)
+        render()
+        openDay(tapped)
+    }
+
+    override fun onDestroy() {
+        current?.dismiss()
+        current = null
+        super.onDestroy()
+    }
+
+    /** 위젯 날짜 칸이 넘겨준 날짜. 그 밖의 경로로 열렸으면 null. */
+    private fun dateOf(intent: Intent?): LocalDate? {
+        if (intent?.action != ShiftWidget.ACTION_DAY) return null
+        val raw = intent.data?.lastPathSegment ?: return null
+        return runCatching { LocalDate.parse(raw) }.getOrNull()
+    }
+
+    /** 창은 한 번에 하나만 — 위젯에서 다른 날짜를 누르면 앞서 뜬 창을 갈아탄다. */
+    private fun AlertDialog.Builder.present() {
+        current?.dismiss()
+        current = show()
     }
 
     private fun dp(v: Int) = TypedValue.applyDimension(
@@ -173,7 +211,7 @@ class MainActivity : Activity() {
                 }
             }
             .setNegativeButton("닫기", null)
-            .show()
+            .present()
     }
 
     /** 이 하루만 바꾼다 — 교대나 연차처럼 주기에서 벗어나는 날 */
@@ -186,7 +224,7 @@ class MainActivity : Activity() {
                 applyChange("${label(date)}만 ${choices[which].full}(으)로 바꿨습니다")
             }
             .setNegativeButton("닫기", null)
-            .show()
+            .present()
     }
 
     private fun label(date: LocalDate) = "%d월 %d일".format(date.monthValue, date.dayOfMonth)
@@ -224,7 +262,7 @@ class MainActivity : Activity() {
                 }
             }
             .setNegativeButton("닫기", null)
-            .show()
+            .present()
     }
 
     private fun openTodayShift() {
@@ -235,7 +273,7 @@ class MainActivity : Activity() {
                 applyChange("오늘을 ${Shift.CYCLE[which].full}으로 맞췄습니다 · 전체 이동")
             }
             .setNegativeButton("닫기", null)
-            .show()
+            .present()
     }
 
     /** 근무 종류별 출근 알람. 해당 근무인 날에만 울린다. */
@@ -247,7 +285,7 @@ class MainActivity : Activity() {
             .setTitle("출근 알람  ·  근무별 시각")
             .setItems(items) { _, which -> pickAlarmTime(Alarms.TARGETS[which]) }
             .setNegativeButton("닫기", null)
-            .show()
+            .present()
     }
 
     private fun pickAlarmTime(shift: Shift) {
@@ -300,7 +338,7 @@ class MainActivity : Activity() {
                 pickExportRange(targets[i])
             }
             .setNegativeButton("닫기", null)
-            .show()
+            .present()
     }
 
     private fun pickExportRange(target: CalendarExport.Target) {
@@ -315,7 +353,7 @@ class MainActivity : Activity() {
                 }
             }
             .setNegativeButton("닫기", null)
-            .show()
+            .present()
     }
 
     /** 연동이 켜져 있을 때의 관리 화면 */
@@ -347,7 +385,7 @@ class MainActivity : Activity() {
                 }
             }
             .setNegativeButton("닫기", null)
-            .show()
+            .present()
     }
 
     /** 안드로이드 13 이상에서는 알림 권한을 따로 받아야 소리가 난다. */
