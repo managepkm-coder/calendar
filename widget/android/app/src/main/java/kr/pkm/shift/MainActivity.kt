@@ -195,7 +195,8 @@ class MainActivity : Activity() {
     private fun applyChange(message: String) {
         ShiftWidget.refreshAll(this)
         ShiftWidget.scheduleMidnight(this)
-        Alarms.rescheduleAll(this)      // 근무가 바뀌면 알람 날짜도 달라진다
+        Alarms.rescheduleAll(this)        // 근무가 바뀌면 알람 날짜도 달라진다
+        CalendarSync.onScheduleChanged(this)  // 캘린더에 내보낸 일정도 다시 맞춘다
         render()
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
@@ -204,7 +205,13 @@ class MainActivity : Activity() {
         AlertDialog.Builder(this)
             .setTitle("설정")
             .setItems(
-                arrayOf("오늘의 근무 맞추기", "출근 알람", "캘린더에 내보내기", "직접 지정한 날짜 모두 지우기")
+                arrayOf(
+                    "오늘의 근무 맞추기",
+                    "출근 알람",
+                    if (CalendarSync.isEnabled(this)) "캘린더 자동 연동  ·  켜짐"
+                    else "캘린더에 내보내기",
+                    "직접 지정한 날짜 모두 지우기",
+                )
             ) { _, which ->
                 when (which) {
                     0 -> openTodayShift()
@@ -270,6 +277,7 @@ class MainActivity : Activity() {
 
     /** 근무를 폰 캘린더에 내보낸다. Google 계정을 고르면 클라우드로 동기화된다. */
     private fun exportToCalendar() {
+        if (CalendarSync.isEnabled(this)) { manageSync(); return }
         if (!Schedule.isConfigured(this)) {
             Toast.makeText(this, "먼저 오늘의 근무를 정해주세요", Toast.LENGTH_SHORT).show()
             return
@@ -298,18 +306,51 @@ class MainActivity : Activity() {
     private fun pickExportRange(target: CalendarExport.Target) {
         val months = longArrayOf(3, 6, 12)
         AlertDialog.Builder(this)
-            .setTitle("${target.name}  ·  기간")
-            .setItems(months.map { "오늘부터 ${it}개월" }.toTypedArray()) { _, i ->
-                val n = CalendarExport.export(this, target.id, months[i])
-                Toast.makeText(this, "일정 ${n}개를 넣었습니다", Toast.LENGTH_LONG).show()
-            }
-            .setNeutralButton("넣었던 일정 지우기") { _, _ ->
-                val n = CalendarExport.clear(this, target.id)
-                Toast.makeText(this, "일정 ${n}개를 지웠습니다", Toast.LENGTH_SHORT).show()
+            .setTitle("${target.name}  ·  항상 유지할 기간")
+            .setItems(months.map { "앞으로 ${it}개월" }.toTypedArray()) { _, i ->
+                CalendarSync.enable(this, target.id, months[i])
+                Toast.makeText(this, "내보내는 중…", Toast.LENGTH_SHORT).show()
+                CalendarSync.syncNow(this) { n ->
+                    Toast.makeText(this, "일정 ${n}개를 넣었습니다 · 자동 연동 켜짐", Toast.LENGTH_LONG).show()
+                }
             }
             .setNegativeButton("닫기", null)
             .show()
     }
+
+    /** 연동이 켜져 있을 때의 관리 화면 */
+    private fun manageSync() {
+        val (id, months) = CalendarSync.target(this) ?: return
+        val name = CalendarExport.targets(this).firstOrNull { it.id == id }?.name ?: "캘린더"
+        AlertDialog.Builder(this)
+            .setTitle("자동 연동  ·  ${name} · ${months}개월")
+            .setItems(
+                arrayOf(
+                    "지금 다시 내보내기  (${CalendarSync.lastSyncLabel(this)})",
+                    "캘린더 · 기간 바꾸기",
+                    "자동 연동 끄고 넣은 일정 지우기",
+                )
+            ) { _, which ->
+                when (which) {
+                    0 -> {
+                        Toast.makeText(this, "내보내는 중…", Toast.LENGTH_SHORT).show()
+                        CalendarSync.syncNow(this) { n ->
+                            Toast.makeText(this, "일정 ${n}개를 다시 넣었습니다", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    1 -> { CalendarSync.disable(this); exportToCalendar() }
+                    else -> {
+                        val n = CalendarExport.clear(this, id)
+                        CalendarSync.disable(this)
+                        Toast.makeText(this, "일정 ${n}개를 지우고 연동을 껐습니다", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            .setNegativeButton("닫기", null)
+            .show()
+    }
+
+    /** 안드로이드 13 이상에서는 알림 권한을 따로 받아야 소리가 난다. */
 
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
