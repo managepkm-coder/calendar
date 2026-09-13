@@ -189,12 +189,12 @@ class MainActivity : Activity() {
         val actions = mutableListOf<Pair<String, () -> Unit>>()
 
         for (sh in Shift.CYCLE) {
-            actions += "${sh.full}으로 맞추기" to {
+            actions += "${sh.fullRo} 맞추기" to {
                 val before = Schedule.at(this, date)
                 Schedule.setShiftOn(this, date, sh)
                 applyChange(
                     if (before == sh) "${label(date)}은 이미 ${sh.full}입니다"
-                    else "${label(date)}을 ${sh.full}으로 맞췄습니다 · 전체 이동"
+                    else "${label(date)}을 ${sh.fullRo} 맞췄습니다 · 전체 이동"
                 )
             }
         }
@@ -202,7 +202,7 @@ class MainActivity : Activity() {
         for (sh in listOf(Shift.ANNUAL, Shift.SUPPORT)) {
             actions += "이 날만 ${sh.full}" to {
                 Schedule.setOverride(this, date, sh)
-                applyChange("${label(date)}만 ${sh.full}(으)로 바꿨습니다")
+                applyChange("${label(date)}만 ${sh.fullRo} 바꿨습니다")
             }
         }
 
@@ -229,7 +229,7 @@ class MainActivity : Activity() {
             .setTitle("%02d. %02d  ·  이 날만 변경".format(date.monthValue, date.dayOfMonth))
             .setItems(choices.map { it.full }.toTypedArray()) { _, which ->
                 Schedule.setOverride(this, date, choices[which])
-                applyChange("${label(date)}만 ${choices[which].full}(으)로 바꿨습니다")
+                applyChange("${label(date)}만 ${choices[which].fullRo} 바꿨습니다")
             }
             .setNegativeButton("닫기", null)
             .present()
@@ -277,7 +277,7 @@ class MainActivity : Activity() {
             .setTitle("오늘의 근무  ·  전체 주기 맞추기")
             .setItems(Shift.CYCLE.map { it.full }.toTypedArray()) { _, which ->
                 Schedule.setTodayShift(this, Shift.CYCLE[which])
-                applyChange("오늘을 ${Shift.CYCLE[which].full}으로 맞췄습니다 · 전체 이동")
+                applyChange("오늘을 ${Shift.CYCLE[which].fullRo} 맞췄습니다 · 전체 이동")
             }
             .setNegativeButton("닫기", null)
             .present()

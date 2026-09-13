@@ -13,6 +13,16 @@ enum class Shift(val label: String, val full: String) {
     ANNUAL("연", "연차"),
     SUPPORT("지", "지원근무");
 
+    /** 조사를 붙인 이름 — "주간으로", "휴무로".
+     *  받침이 없는 말에 '으로'를 붙이면 "휴무으로"가 되어 읽기 어색합니다. */
+    val fullRo: String
+        get() {
+            val last = full.last()
+            // 한글 음절은 (글자 - '가') % 28 이 0 이면 받침이 없다. 8 은 ㄹ 받침.
+            val jong = if (last in '가'..'힣') (last - '가') % 28 else 0
+            return full + if (jong == 0 || jong == 8) "로" else "으로"
+        }
+
     companion object {
         /** 반복되는 근무 주기. 순서를 바꾸려면 여기만 고치면 됩니다. */
         val CYCLE = listOf(DAY, NIGHT, OFF, REST)
