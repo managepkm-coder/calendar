@@ -8,6 +8,7 @@ object Palette {
         Shift.OFF -> R.drawable.badge_bi
         Shift.REST -> R.drawable.badge_hyu
         Shift.ANNUAL -> R.drawable.badge_yeon
+        Shift.SUPPORT -> R.drawable.badge_ji
     }
 
     fun fg(s: Shift) = when (s) {
@@ -16,5 +17,6 @@ object Palette {
         Shift.OFF -> 0xFFC9372B.toInt()
         Shift.REST -> 0xFF6B6B73.toInt()
         Shift.ANNUAL -> 0xFF2F6FD0.toInt()
+        Shift.SUPPORT -> 0xFF1E7A45.toInt()
     }
 }

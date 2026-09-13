@@ -6,6 +6,7 @@
   --bi:#e0483c;                      /* 비번 */
   --hyu:#e0483c;                     /* 휴무 */
   --off:#8e8e93;                     /* 연차 */
+  --sup:#1e7a45;                     /* 지원근무 */
   --sel:#2f6fd0; --sel-bg:#e8f1fd;
 }
 @media (prefers-color-scheme:dark){
@@ -59,6 +60,7 @@ h1{font-size:27px;font-weight:800;margin:0;letter-spacing:-.5px;font-variant-num
 .badge.bi {color:var(--bi)}
 .badge.hyu{color:var(--hyu)}
 .badge.off{color:var(--off);text-decoration:underline}
+.badge.sup{color:var(--sup);text-decoration:underline}
 .badge.manual{box-shadow:0 0 0 2px var(--sel)}
 
 dialog{

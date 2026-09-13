@@ -7,7 +7,10 @@ const CYCLE = [
   { k: '비', cls: 'bi',  name: '비번' },
   { k: '휴', cls: 'hyu', name: '휴무' },
 ];
-const EXTRA = { '연': { k: '연', cls: 'off', name: '연차' } };
+const EXTRA = {
+  '연': { k: '연', cls: 'off', name: '연차' },
+  '지': { k: '지', cls: 'sup', name: '지원근무' },
+};
 
 const DAY = 86400000;
 const ANCHOR = Date.UTC(2026, 7, 30); // 2026-08-30

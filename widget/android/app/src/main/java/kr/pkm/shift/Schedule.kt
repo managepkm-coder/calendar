@@ -10,7 +10,8 @@ enum class Shift(val label: String, val full: String) {
     NIGHT("야", "야간"),
     OFF("비", "비번"),
     REST("휴", "휴무"),
-    ANNUAL("연", "연차");
+    ANNUAL("연", "연차"),
+    SUPPORT("지", "지원근무");
 
     companion object {
         /** 반복되는 근무 주기. 순서를 바꾸려면 여기만 고치면 됩니다. */

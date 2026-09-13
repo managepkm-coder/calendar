@@ -22,8 +22,8 @@ object Alarms {
     private const val CHANNEL = "shift_alarm"
     const val EXTRA_SHIFT = "kr.pkm.shift.ALARM_SHIFT"
 
-    /** 알람을 걸 수 있는 근무 — 주기에 도는 네 가지만 */
-    val TARGETS = Shift.CYCLE
+    /** 알람을 걸 수 있는 근무 — 주기 네 가지에 지원근무까지. 연차는 쉬는 날이라 제외한다. */
+    val TARGETS = Shift.CYCLE + Shift.SUPPORT
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
