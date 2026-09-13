@@ -7,6 +7,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.view.View
 import android.widget.RemoteViews
 import java.time.LocalDate
@@ -53,6 +54,9 @@ class ShiftWidget : AppWidgetProvider() {
         const val ACTION_TODAY = "kr.pkm.shift.TODAY"
         const val ACTION_RESET_MONTH = "kr.pkm.shift.RESET_MONTH"
 
+        /** 날짜 칸이 앱에 넘기는 액션. data 에 그 날짜가 담긴다. */
+        const val ACTION_DAY = "kr.pkm.shift.DAY"
+
         /** 달을 옮긴 뒤 이만큼 지나면 이번 달로 되돌린다. */
         private const val MONTH_RESET_MS = 3 * 60 * 1000L
 
@@ -96,6 +100,9 @@ class ShiftWidget : AppWidgetProvider() {
             val configured = Schedule.isConfigured(ctx)
             v.setTextViewText(R.id.btnToday, if (configured) "오늘" else "근무 설정 →")
 
+            // 달력 화면만 여는 곳은 여러 군데라 PendingIntent 하나를 돌려쓴다
+            val toApp = openApp(ctx)
+
             v.setTextViewText(R.id.ym, "%d. %02d".format(month.year, month.monthValue))
             v.setTextColor(R.id.ym, ctx.getColor(R.color.text_primary))
             for (id in intArrayOf(R.id.btnToday, R.id.btnPrev, R.id.btnNext, R.id.btnSettings)) {
@@ -104,9 +111,9 @@ class ShiftWidget : AppWidgetProvider() {
             v.setOnClickPendingIntent(R.id.btnPrev, broadcast(ctx, ACTION_PREV, 10))
             v.setOnClickPendingIntent(R.id.btnNext, broadcast(ctx, ACTION_NEXT, 11))
             v.setOnClickPendingIntent(
-                R.id.btnToday, if (configured) broadcast(ctx, ACTION_TODAY, 12) else openApp(ctx)
+                R.id.btnToday, if (configured) broadcast(ctx, ACTION_TODAY, 12) else toApp
             )
-            v.setOnClickPendingIntent(R.id.btnSettings, openApp(ctx))
+            v.setOnClickPendingIntent(R.id.btnSettings, toApp)
 
             // 그 주 일요일부터 시작한다
             val startDow = month.dayOfWeek.value % 7          // 월=1..일=7 → 일=0
@@ -151,10 +158,15 @@ class ShiftWidget : AppWidgetProvider() {
                     WidgetIds.CELL[i], "setBackgroundResource",
                     if (inMonth && date == today) R.drawable.bg_today else 0
                 )
+
+                // 날짜를 누르면 그 날 수정 창이 바로 열린다. 이번 달이 아닌 칸은
+                // 근무 배지도 없으니 달력만 열어 PendingIntent 를 아낀다.
+                v.setOnClickPendingIntent(
+                    WidgetIds.CELL[i], if (inMonth) openDay(ctx, date) else toApp
+                )
             }
-            // 칸마다 PendingIntent 를 만들면 갱신 한 번에 42개가 생겨 위젯이
-            // 통째로 비어버린다. 전체에 하나만 걸고, 날짜 수정은 앱에서 한다.
-            v.setOnClickPendingIntent(R.id.root, openApp(ctx))
+            // 칸 사이 여백을 눌렀을 때를 위해 전체에도 걸어둔다. 칸이 먼저 잡힌다.
+            v.setOnClickPendingIntent(R.id.root, toApp)
             return v
         }
 
@@ -162,6 +174,20 @@ class ShiftWidget : AppWidgetProvider() {
         private fun broadcast(ctx: Context, action: String, code: Int): PendingIntent =
             PendingIntent.getBroadcast(
                 ctx, code, Intent(ctx, ShiftWidget::class.java).setAction(action),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
+        /** 날짜 칸 하나가 앱을 여는 PendingIntent.
+         *  날짜를 data 에 담아 칸마다 다른 PendingIntent 가 되게 한다 — extra 만 다르게
+         *  하면 filterEquals 가 같다고 보아 모든 칸이 한 날짜로 열린다.
+         *  이번 달 칸에만 걸므로 갱신 한 번에 만들어지는 개수는 31개를 넘지 않는다. */
+        private fun openDay(ctx: Context, date: LocalDate): PendingIntent =
+            PendingIntent.getActivity(
+                ctx, 0,
+                Intent(ctx, MainActivity::class.java)
+                    .setAction(ACTION_DAY)
+                    .setData(Uri.parse("shift://day/$date"))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
 
