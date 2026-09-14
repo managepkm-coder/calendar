@@ -11,6 +11,18 @@ object Palette {
         Shift.SUPPORT -> R.drawable.badge_ji
     }
 
+    /** 캘린더에 내보낼 때 목표로 삼는 색.
+     *  배지 바탕은 연한 것이 섞여 있어 그대로 맞추면 엉뚱한 색이 잡히므로,
+     *  근무마다 또렷한 색을 따로 둔다. 계정이 주는 색 중 여기서 가장 가까운 것을 쓴다. */
+    fun exportRgb(s: Shift) = when (s) {
+        Shift.DAY -> 0xF6BF26      // 노랑
+        Shift.NIGHT -> 0x616161    // 진회색
+        Shift.OFF -> 0xD50000      // 빨강
+        Shift.REST -> 0x7986CB     // 연보라
+        Shift.ANNUAL -> 0x3F51B5   // 남색
+        Shift.SUPPORT -> 0x0B8043  // 초록
+    }
+
     fun fg(s: Shift) = when (s) {
         Shift.DAY -> 0xFF3D3300.toInt()
         Shift.NIGHT -> 0xFFFFFFFF.toInt()
