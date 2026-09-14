@@ -323,6 +323,12 @@ class MainActivity : Activity() {
     /** 근무를 폰 캘린더에 내보낸다. Google 계정을 고르면 클라우드로 동기화된다. */
     private fun exportToCalendar() {
         if (CalendarSync.isEnabled(this)) { manageSync(); return }
+        chooseTarget()
+    }
+
+    /** 캘린더 → 기간 순서로 고른다. 끝까지 고르기 전에는 지금 설정을 건드리지 않으므로
+     *  중간에 닫아도 쓰던 연동이 그대로 남는다. */
+    private fun chooseTarget() {
         if (!Schedule.isConfigured(this)) {
             Toast.makeText(this, "먼저 오늘의 근무를 정해주세요", Toast.LENGTH_SHORT).show()
             return
@@ -353,14 +359,24 @@ class MainActivity : Activity() {
         AlertDialog.Builder(this)
             .setTitle("${target.name}  ·  항상 유지할 기간")
             .setItems(months.map { "앞으로 ${it}개월" }.toTypedArray()) { _, i ->
-                CalendarSync.enable(this, target.id, months[i])
-                Toast.makeText(this, "내보내는 중…", Toast.LENGTH_SHORT).show()
-                CalendarSync.syncNow(this) { n ->
-                    Toast.makeText(this, "일정 ${n}개를 넣었습니다 · 자동 연동 켜짐", Toast.LENGTH_LONG).show()
-                }
+                switchTo(target, months[i])
             }
             .setNegativeButton("닫기", null)
             .present()
+    }
+
+    /** 여기서 비로소 설정이 바뀐다 — 캘린더와 기간을 모두 고른 뒤에만 부른다. */
+    private fun switchTo(target: CalendarExport.Target, months: Long) {
+        // 다른 캘린더로 옮기는 길이면 전에 쓰던 곳의 일정을 먼저 거둔다.
+        // 내보내기는 넣을 캘린더만 비우므로, 이걸 빼면 옛 캘린더에 그대로 남는다.
+        val previous = CalendarSync.target(this)?.first
+        if (previous != null && previous != target.id) CalendarExport.clear(this, previous)
+
+        CalendarSync.enable(this, target.id, months)
+        Toast.makeText(this, "내보내는 중…", Toast.LENGTH_SHORT).show()
+        CalendarSync.syncNow(this) { n ->
+            Toast.makeText(this, "일정 ${n}개를 넣었습니다 · 자동 연동 켜짐", Toast.LENGTH_LONG).show()
+        }
     }
 
     /** 연동이 켜져 있을 때의 관리 화면 */
@@ -383,7 +399,7 @@ class MainActivity : Activity() {
                             Toast.makeText(this, "일정 ${n}개를 다시 넣었습니다", Toast.LENGTH_LONG).show()
                         }
                     }
-                    1 -> { CalendarSync.disable(this); exportToCalendar() }
+                    1 -> chooseTarget()
                     else -> {
                         val n = CalendarExport.clear(this, id)
                         CalendarSync.disable(this)
@@ -402,7 +418,7 @@ class MainActivity : Activity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 2 && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-            exportToCalendar()
+            chooseTarget()      // 권한을 물은 곳이 고르기 화면이므로 그리로 되돌아간다
         }
     }
 
