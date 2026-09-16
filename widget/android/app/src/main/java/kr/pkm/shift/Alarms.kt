@@ -22,8 +22,9 @@ object Alarms {
     private const val CHANNEL = "shift_alarm"
     const val EXTRA_SHIFT = "kr.pkm.shift.ALARM_SHIFT"
 
-    /** 알람을 걸 수 있는 근무 — 주기 네 가지에 지원근무까지. 연차는 쉬는 날이라 제외한다. */
-    val TARGETS = Shift.CYCLE + Shift.SUPPORT
+    /** 알람을 걸 수 있는 근무 — 지금 차례에 든 근무에 지원근무까지.
+     *  연차는 쉬는 날이라 제외한다. 차례가 바뀌면 목록도 따라 바뀐다. */
+    fun targets(ctx: Context): List<Shift> = (Schedule.cycle(ctx) + Shift.SUPPORT).distinct()
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -74,9 +75,12 @@ object Alarms {
     /** 근무표나 알람 설정이 바뀔 때마다 다시 계산해 건다. */
     fun rescheduleAll(ctx: Context) {
         val am = alarmManager(ctx)
-        for (shift in TARGETS) {
+        val live = targets(ctx)
+        // 차례에서 빠진 근무에 걸려 있던 알람도 거둬야 하므로 전부 돌며 취소부터 한다
+        for (shift in Shift.entries) {
             val pi = intentFor(ctx, shift)
             am.cancel(pi)
+            if (shift !in live) continue
             val minutes = timeOf(ctx, shift) ?: continue
             val at = nextTime(ctx, shift, minutes) ?: continue
             try {

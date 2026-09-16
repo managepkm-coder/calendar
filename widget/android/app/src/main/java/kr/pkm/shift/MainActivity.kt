@@ -52,8 +52,8 @@ class MainActivity : Activity() {
         if (savedInstanceState == null) when {
             // 누른 날짜 창을 바로 띄운다. 근무를 정하기 전이어도 이 창에서 맞출 수 있다.
             tapped != null -> openDay(tapped)
-            // 그 외에는 근무를 아직 정하지 않았을 때만 설정을 띄우고, 달력만 보여준다.
-            !Schedule.isConfigured(this) -> openSettings()
+            // 아직 근무를 정하지 않았으면 패턴부터 정하는 안내를 띄운다.
+            !Schedule.isConfigured(this) -> startSetup()
         }
     }
 
@@ -241,12 +241,16 @@ class MainActivity : Activity() {
         // 항목과 동작을 짝지어 만들면 번호를 세다 어긋날 일이 없다
         val actions = mutableListOf<Pair<String, () -> Unit>>()
 
-        for (sh in Shift.CYCLE) {
-            actions += "${sh.fullRo} 맞추기" to {
-                val before = Schedule.at(this, date)
-                Schedule.setShiftOn(this, date, sh)
+        val cycle = Schedule.cycle(this)
+        cycle.forEachIndexed { i, sh ->
+            // 같은 근무가 차례에 두 번 이상 나오면 이름만으로는 어느 자리인지 알 수 없다
+            val name = if (cycle.count { it == sh } == 1) "${sh.fullRo} 맞추기"
+                       else "${i + 1}일째(${sh.full})로 맞추기"
+            actions += name to {
+                val was = if (Schedule.isConfigured(this)) Schedule.offset(this) else null
+                Schedule.setPatternDayOn(this, date, i)
                 applyChange(
-                    if (before == sh) "${label(date)}은 이미 ${sh.full}입니다"
+                    if (was == Schedule.offset(this)) "${label(date)}은 이미 ${sh.full}입니다"
                     else "${label(date)}을 ${sh.fullRo} 맞췄습니다 · 전체 이동"
                 )
             }
@@ -282,7 +286,8 @@ class MainActivity : Activity() {
 
     /** 주기 근무를 하루만 바꾼다 — 교대로 다른 조 근무를 서는 날 */
     private fun openDayOnly(date: LocalDate) {
-        val choices = Shift.CYCLE
+        // 교대로 대신 서는 근무이므로 지금 차례에 든 것들 중에서 고른다
+        val choices = Schedule.cycle(this).distinct()
         AlertDialog.Builder(this)
             .setTitle("%02d. %02d  ·  이 날만 변경".format(date.monthValue, date.dayOfMonth))
             .setItems(choices.map { it.full }.toTypedArray()) { _, which ->
@@ -347,37 +352,95 @@ class MainActivity : Activity() {
     }
 
     private fun openSettings() {
+        val actions = mutableListOf<Pair<String, () -> Unit>>()
+
+        actions += "오늘 위치 맞추기" to { pickToday() }
+        actions += "근무 패턴  ·  ${patternLabel()}" to { startSetup() }
+        actions += "출근 알람" to { openAlarms() }
+        actions += (
+            if (CalendarSync.isEnabled(this)) "캘린더 자동 연동  ·  켜짐"
+            else "캘린더에 내보내기"
+            ) to { exportToCalendar() }
+        actions += "직접 지정한 날짜 모두 지우기" to {
+            Schedule.clearOverrides(this)
+            applyChange("직접 지정한 날짜를 모두 지웠습니다")
+        }
+
         AlertDialog.Builder(this)
             .setTitle("설정")
+            .setItems(actions.map { it.first }.toTypedArray()) { _, i -> actions[i].second() }
+            .setNegativeButton("닫기", null)
+            .present()
+    }
+
+    /** "주 · 야 · 비 · 휴 (4일)" 처럼 지금 차례를 한 줄로 */
+    private fun patternLabel(): String {
+        val cycle = Schedule.cycle(this)
+        return "${cycle.joinToString(" · ") { it.brief }}  (${cycle.size}일)"
+    }
+
+    /** 처음 켰을 때, 그리고 ⚙ 에서 다시 부를 때 — 되풀이되는 차례부터 정한다. */
+    private fun startSetup() {
+        AlertDialog.Builder(this)
+            .setTitle("근무 패턴  ·  되풀이되는 차례를 정합니다")
             .setItems(
                 arrayOf(
-                    "오늘의 근무 맞추기",
-                    "출근 알람",
-                    if (CalendarSync.isEnabled(this)) "캘린더 자동 연동  ·  켜짐"
-                    else "캘린더에 내보내기",
-                    "직접 지정한 날짜 모두 지우기",
+                    "주 · 야 · 비 · 휴   (4일 주기)",
+                    "직접 만들기",
                 )
             ) { _, which ->
-                when (which) {
-                    0 -> openTodayShift()
-                    1 -> openAlarms()
-                    2 -> exportToCalendar()
-                    else -> {
-                        Schedule.clearOverrides(this)
-                        applyChange("직접 지정한 날짜를 모두 지웠습니다")
-                    }
+                if (which == 0) {
+                    Schedule.setCycle(this, Shift.DEFAULT_CYCLE)
+                    pickToday()
+                } else {
+                    buildPattern(mutableListOf())
                 }
             }
             .setNegativeButton("닫기", null)
             .present()
     }
 
-    private fun openTodayShift() {
+    /** 하루씩 골라 차례를 만든다. 이틀 이상 쌓이면 거기서 끝낼 수 있다. */
+    private fun buildPattern(days: MutableList<Shift>) {
+        val choices = Shift.PATTERN_CHOICES
+        val items = choices.map { it.full } +
+            if (days.size >= 2) listOf("여기까지 — ${days.size}일 주기로 저장") else emptyList()
         AlertDialog.Builder(this)
-            .setTitle("오늘의 근무  ·  전체 주기 맞추기")
-            .setItems(Shift.CYCLE.map { it.full }.toTypedArray()) { _, which ->
-                Schedule.setTodayShift(this, Shift.CYCLE[which])
-                applyChange("오늘을 ${Shift.CYCLE[which].fullRo} 맞췄습니다 · 전체 이동")
+            .setTitle(
+                "%d일째 근무\n%s".format(
+                    days.size + 1,
+                    if (days.isEmpty()) "아직 고른 것 없음" else days.joinToString(" · ") { it.brief }
+                )
+            )
+            .setItems(items.toTypedArray()) { _, i ->
+                if (i >= choices.size) {
+                    savePattern(days)
+                    return@setItems
+                }
+                days += choices[i]
+                // 더 담을 자리가 없으면 거기서 끝낸다
+                if (days.size >= Schedule.MAX_PATTERN) savePattern(days) else buildPattern(days)
+            }
+            .setNegativeButton("닫기", null)
+            .present()
+    }
+
+    private fun savePattern(days: List<Shift>) {
+        Schedule.setCycle(this, days)
+        // 차례가 바뀌면 오늘이 어느 자리인지 다시 정해야 근무가 나온다
+        pickToday()
+    }
+
+    /** 오늘이 차례의 몇 번째 날인지 고른다. 이것 하나면 나머지 날짜가 전부 맞춰진다. */
+    private fun pickToday() {
+        val cycle = Schedule.cycle(this)
+        AlertDialog.Builder(this)
+            .setTitle("오늘은 차례의 몇 번째 날인가요\n${patternLabel()}")
+            .setItems(
+                cycle.mapIndexed { i, sh -> "${i + 1}일째  ·  ${sh.full}" }.toTypedArray()
+            ) { _, i ->
+                Schedule.setPatternDayOn(this, LocalDate.now(), i)
+                applyChange("오늘을 ${i + 1}일째(${cycle[i].full})로 맞췄습니다 · 전체 이동")
             }
             .setNegativeButton("닫기", null)
             .present()
@@ -385,12 +448,13 @@ class MainActivity : Activity() {
 
     /** 근무 종류별 출근 알람. 해당 근무인 날에만 울린다. */
     private fun openAlarms() {
-        val items = Alarms.TARGETS
+        val targets = Alarms.targets(this)
+        val items = targets
             .map { "${it.full}   ${Alarms.label(this, Alarms.timeOf(this, it))}" }
             .toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("출근 알람  ·  근무별 시각")
-            .setItems(items) { _, which -> pickAlarmTime(Alarms.TARGETS[which]) }
+            .setItems(items) { _, which -> pickAlarmTime(targets[which]) }
             .setNegativeButton("닫기", null)
             .present()
     }

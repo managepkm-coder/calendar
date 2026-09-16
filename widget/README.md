@@ -60,10 +60,12 @@ Play 스토어에 올리거나 배포할 앱이라면 반드시 별도의 키를
 
 ## 근무 주기를 바꾸려면
 
-| 대상 | 파일 | 고칠 곳 |
-|---|---|---|
-| 웹앱 | `app.js` | `CYCLE`, `ANCHOR` |
-| iOS | `widget/ios/shift-widget.js` | `CYCLE`, `ANCHOR` |
-| Android | `widget/android/.../Schedule.kt` | `enum class Shift`, `ANCHOR` |
+| 대상 | 고칠 곳 |
+|---|---|
+| Android | **앱 안에서** ⚙ → `근무 패턴` — 기본 4일 주기를 쓰거나 직접 만듭니다 |
+| 웹앱 | `app.js` 의 `CYCLE`, `ANCHOR` |
+| iOS | `widget/ios/shift-widget.js` 의 `CYCLE`, `ANCHOR` |
 
-세 곳의 주기와 기준일은 항상 같게 유지하세요.
+Android 는 주기를 사용자가 정하므로 코드를 고칠 필요가 없습니다.
+웹앱과 iOS 는 아직 코드에 박혀 있으니, 기본 4일 주기가 아닌 패턴을 쓰신다면
+안드로이드 앱 쪽만 맞고 나머지 둘은 다르게 나옵니다.
