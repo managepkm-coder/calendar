@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 한 달이 화면에 꽉 차도록 스크롤 없이 높이를 나눠 갖는다 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 한 달이 들어가면 화면을 꽉 채우고, 모자라면 스크롤한다.
+     fillViewport 는 내용이 화면보다 짧을 때만 화면 높이만큼 늘려 주므로,
+     그때는 아래 무게가 살아 주 줄이 높이를 나눠 갖고, 넘칠 때는 스크롤로 넘어간다. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@color/screen_bg"
-    android:padding="10dp">
+    android:padding="10dp" android:fillViewport="true">
 
     <LinearLayout
-        android:layout_width="match_parent" android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/bg_card"
         android:padding="14dp">
@@ -61,9 +61,10 @@
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="horizontal" android:layout_marginBottom="2dp" />
 
-        <!-- 날짜 — 주 단위 줄을 코드에서 채운다. 남은 높이를 주 수만큼 나눠 갖는다 -->
+        <!-- 날짜 — 주 단위 줄을 코드에서 채운다.
+             0dp 가 아니라 wrap_content + 무게라야 늘릴 자리가 없을 때 칸이 찌그러지지 않는다 -->
         <LinearLayout android:id="@+id/grid"
-            android:layout_width="match_parent" android:layout_height="0dp"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_weight="1" android:orientation="vertical" />
     </LinearLayout>
-</LinearLayout>
+</ScrollView>

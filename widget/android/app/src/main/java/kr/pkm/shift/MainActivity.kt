@@ -86,6 +86,15 @@ class MainActivity : Activity() {
         current = show()
     }
 
+    /** 기기 크기에 따른 배율. 360dp 폭을 1.0 으로 본다.
+     *  smallestScreenWidthDp 는 눕혀도 바뀌지 않으므로 가로로 돌렸다고 글자가 커지지 않는다. */
+    private val scale: Float by lazy {
+        (resources.configuration.smallestScreenWidthDp / 360f).coerceIn(0.85f, 1.4f)
+    }
+
+    /** 배율을 먹인 글자 크기 */
+    private fun sp(v: Float) = v * scale
+
     private fun dp(v: Int) = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics
     ).toInt()
@@ -100,7 +109,7 @@ class MainActivity : Activity() {
             val t = TextView(this)
             t.text = name
             t.gravity = Gravity.CENTER
-            t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            t.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp(13f))
             t.setTypeface(null, Typeface.BOLD)
             t.setTextColor(
                 when (i) {
@@ -138,8 +147,13 @@ class MainActivity : Activity() {
         for (w in 0 until weeks) {
             val row = LinearLayout(this)
             row.orientation = LinearLayout.HORIZONTAL
-            row.layoutParams =
-                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
+            // 날짜와 근무 띠가 늘 들어갈 만큼은 확보해 둔다. 화면에 자리가 남으면
+            // 무게를 따라 여기서 더 늘어나고, 모자라면 이 높이로 버티며 스크롤된다.
+            row.minimumHeight = dp((52 * scale).toInt())
+            row.layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+            )
             for (d in 0 until 7) {
                 val date = start.plusDays((w * 7 + d).toLong())
                 val cell = buildCell(date, date.monthValue == month.monthValue)
@@ -166,7 +180,7 @@ class MainActivity : Activity() {
         label.gravity = Gravity.CENTER
         label.maxLines = 1
         label.ellipsize = TextUtils.TruncateAt.END
-        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp(12f))
         label.setTypeface(null, Typeface.BOLD)
         label.setTextColor(
             when {
@@ -178,7 +192,9 @@ class MainActivity : Activity() {
         col.addView(label)
 
         Schedule.at(this, date)?.let { shift ->
-            col.addView(bar(shift.brief, getColor(Palette.barColor(shift)), Palette.fg(shift), 11f, 1))
+            col.addView(
+                bar(shift.brief, getColor(Palette.barColor(shift)), Palette.fg(shift), sp(11f), 1)
+            )
         }
         // 메모는 조금 작게. 하나뿐이면 두 줄까지 펴 보이고, 여럿이면 한 줄씩 줄여 담는다.
         // 칸 높이가 정해져 있으므로 넘치는 개수는 +N 으로만 알린다.
@@ -186,11 +202,11 @@ class MainActivity : Activity() {
         val mbg = getColor(R.color.memo_bg)
         val mfg = getColor(R.color.memo_fg)
         if (memos.size == 1) {
-            col.addView(bar(memos[0], mbg, mfg, 9f, 2))
+            col.addView(bar(memos[0], mbg, mfg, sp(9f), 2))
         } else {
-            memos.take(MEMO_BARS).forEach { col.addView(bar(it, mbg, mfg, 9f, 1)) }
+            memos.take(MEMO_BARS).forEach { col.addView(bar(it, mbg, mfg, sp(9f), 1)) }
             if (memos.size > MEMO_BARS) {
-                col.addView(bar("+${memos.size - MEMO_BARS}", mbg, mfg, 9f, 1))
+                col.addView(bar("+${memos.size - MEMO_BARS}", mbg, mfg, sp(9f), 1))
             }
         }
 
