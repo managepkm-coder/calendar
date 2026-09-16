@@ -184,7 +184,7 @@ class MainActivity : Activity() {
     /** 한 칸의 너비. 줄 높이를 재려면 글이 몇 줄로 접히는지 알아야 하므로 먼저 셈한다. */
     private fun cellWidthPx(): Int {
         // 화면 여백 + 카드 여백 + 칸 사이 세로선 여섯 줄
-        val outer = dp(10) * 2 + dp(14) * 2 + maxOf(1, dp(1)) * 6
+        val outer = dp(10) * 2 + dp(12) * 2 + maxOf(1, dp(1)) * 6
         return ((resources.displayMetrics.widthPixels - outer) / 7).coerceAtLeast(dp(20))
     }
 
@@ -204,15 +204,18 @@ class MainActivity : Activity() {
         val holiday = Holidays.nameOf(date)
         val col = LinearLayout(this)
         col.orientation = LinearLayout.VERTICAL
-        col.setPadding(dp(2), dp(5), dp(2), dp(6))
+        col.setPadding(dp(3), dp(4), dp(3), dp(6))
         if (date == LocalDate.now()) col.setBackgroundResource(R.drawable.bg_today)
         col.alpha = if (inMonth) 1f else 0.42f
 
-        // 공휴일 이름을 날짜와 같은 줄에 붙인다 — 줄 수가 칸마다 달라지면 띠가 어긋난다
+        // 날짜와 근무 배지를 한 줄에 — 위젯과 같은 모양이고, 아래가 메모 몫으로 남는다
+        val head = LinearLayout(this)
+        head.orientation = LinearLayout.HORIZONTAL
+        head.gravity = Gravity.CENTER_VERTICAL
+
         val label = TextView(this)
-        label.text = (if (date.dayOfMonth == 1) "%02d.%02d".format(date.monthValue, date.dayOfMonth)
-                      else "%02d".format(date.dayOfMonth)) + (holiday?.let { " $it" } ?: "")
-        label.gravity = Gravity.CENTER
+        label.text = if (date.dayOfMonth == 1) "%02d.%02d".format(date.monthValue, date.dayOfMonth)
+                     else "%02d".format(date.dayOfMonth)
         label.maxLines = 1
         label.ellipsize = TextUtils.TruncateAt.END
         label.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp(12f))
@@ -224,15 +227,27 @@ class MainActivity : Activity() {
                 else -> getColor(R.color.text_primary)
             }
         )
-        col.addView(label)
+        label.layoutParams =
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        head.addView(label)
 
         Schedule.at(this, date)?.let { shift ->
-            col.addView(
-                bar(shift.brief, getColor(Palette.barColor(shift)), Palette.fg(shift), sp(11f), 1)
-            )
+            head.addView(badge(shift))
         }
+        col.addView(head)
+
+        // 공휴일 이름은 날짜 줄이 배지에 자리를 내줬으므로 아래로 내린다
+        if (holiday != null) {
+            val h = TextView(this)
+            h.text = holiday
+            h.maxLines = 1
+            h.ellipsize = TextUtils.TruncateAt.END
+            h.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp(9f))
+            h.setTextColor(SUNDAY)
+            col.addView(h)
+        }
+
         // 메모는 조금 작게. 하나뿐이면 두 줄까지 펴 보이고, 여럿이면 한 줄씩 줄여 담는다.
-        // 칸 높이가 정해져 있으므로 넘치는 개수는 +N 으로만 알린다.
         val memos = Schedule.memosOf(this, date)
         val mbg = getColor(R.color.memo_bg)
         val mfg = getColor(R.color.memo_fg)
@@ -247,6 +262,23 @@ class MainActivity : Activity() {
 
         col.setOnClickListener { openDay(date) }
         return col
+    }
+
+    /** 날짜 옆에 붙는 동그란 근무 표시 — 위젯 배지와 같은 색을 쓴다. */
+    private fun badge(shift: Shift): TextView {
+        val t = TextView(this)
+        t.text = shift.label
+        t.gravity = Gravity.CENTER
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp(11f))
+        t.setTypeface(null, Typeface.BOLD)
+        t.setTextColor(Palette.fg(shift))
+        t.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(getColor(Palette.barColor(shift)))
+        }
+        val side = dp((21 * scale).toInt())
+        t.layoutParams = LinearLayout.LayoutParams(side, side)
+        return t
     }
 
     /** 날짜 아래에 칸 너비만큼 깔리는 띠 — 근무 하나, 메모 하나. */
