@@ -17,4 +17,6 @@
     <!-- 날짜 칸에 붙는 메모 띠 -->
     <color name="memo_bg">#F0EFF4</color>
     <color name="memo_fg">#5A5A61</color>
+    <color name="holiday_bg">#FBE3E1</color>
+    <color name="holiday_fg">#B3261E</color>
 </resources>

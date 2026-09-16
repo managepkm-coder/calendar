@@ -8,4 +8,6 @@
     <color name="divider">#33333A</color>
     <color name="memo_bg">#2A2A30</color>
     <color name="memo_fg">#C7C7CE</color>
+    <color name="holiday_bg">#43292A</color>
+    <color name="holiday_fg">#FFB4A9</color>
 </resources>
