@@ -15,7 +15,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.EditText
 import android.widget.FrameLayout
-import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -25,7 +24,7 @@ import java.time.LocalDate
 class MainActivity : Activity() {
 
     private var month: LocalDate = LocalDate.now().withDayOfMonth(1)
-    private lateinit var grid: GridLayout
+    private lateinit var grid: LinearLayout
     private var current: AlertDialog? = null
 
     private val dowNames = arrayOf("일", "월", "화", "수", "목", "금", "토")
@@ -132,16 +131,23 @@ class MainActivity : Activity() {
         // 그 주의 일요일부터 시작해 필요한 주 수만큼만 그린다
         val startDow = month.dayOfWeek.value % 7          // 월=1..일=7 → 일=0
         val start = month.minusDays(startDow.toLong())
-        val cells = ((startDow + month.lengthOfMonth() + 6) / 7) * 7
+        val weeks = (startDow + month.lengthOfMonth() + 6) / 7
 
+        // 주 줄과 날짜 칸 모두 무게 1 — 화면에 남은 높이를 고르게 나눠 갖는다
         grid.removeAllViews()
-        for (i in 0 until cells) {
-            val date = start.plusDays(i.toLong())
-            val cell = buildCell(date, date.monthValue == month.monthValue)
-            cell.layoutParams = GridLayout.LayoutParams(
-                GridLayout.spec(i / 7), GridLayout.spec(i % 7, 1f)
-            ).apply { width = 0 }
-            grid.addView(cell)
+        for (w in 0 until weeks) {
+            val row = LinearLayout(this)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.layoutParams =
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
+            for (d in 0 until 7) {
+                val date = start.plusDays((w * 7 + d).toLong())
+                val cell = buildCell(date, date.monthValue == month.monthValue)
+                cell.layoutParams =
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+                row.addView(cell)
+            }
+            grid.addView(row)
         }
     }
 
@@ -174,9 +180,18 @@ class MainActivity : Activity() {
         Schedule.at(this, date)?.let { shift ->
             col.addView(bar(shift.brief, getColor(Palette.barColor(shift)), Palette.fg(shift), 11f, 1))
         }
-        // 메모는 길어질 수 있어 조금 작게, 두 줄까지 보여준다
-        Schedule.memoOf(this, date)?.let { memo ->
-            col.addView(bar(memo, getColor(R.color.memo_bg), getColor(R.color.memo_fg), 9f, 2))
+        // 메모는 조금 작게. 하나뿐이면 두 줄까지 펴 보이고, 여럿이면 한 줄씩 줄여 담는다.
+        // 칸 높이가 정해져 있으므로 넘치는 개수는 +N 으로만 알린다.
+        val memos = Schedule.memosOf(this, date)
+        val mbg = getColor(R.color.memo_bg)
+        val mfg = getColor(R.color.memo_fg)
+        if (memos.size == 1) {
+            col.addView(bar(memos[0], mbg, mfg, 9f, 2))
+        } else {
+            memos.take(MEMO_BARS).forEach { col.addView(bar(it, mbg, mfg, 9f, 1)) }
+            if (memos.size > MEMO_BARS) {
+                col.addView(bar("+${memos.size - MEMO_BARS}", mbg, mfg, 9f, 1))
+            }
         }
 
         col.setOnClickListener { openDay(date) }
@@ -228,9 +243,10 @@ class MainActivity : Activity() {
             }
         }
 
-        actions += (if (Schedule.memoOf(this, date) == null) "메모 쓰기" else "메모 고치기") to {
-            openMemo(date)
+        Schedule.memosOf(this, date).forEachIndexed { i, memo ->
+            actions += "메모 · $memo" to { openMemo(date, i) }
         }
+        actions += "메모 추가" to { openMemo(date, -1) }
 
         actions += "이 날만 바꾸기 (교대)" to { openDayOnly(date) }
 
@@ -261,45 +277,46 @@ class MainActivity : Activity() {
             .present()
     }
 
-    /** 그 날 한 줄 적어두기. 근무와 달리 주기·알람·캘린더와는 무관하다. */
-    private fun openMemo(date: LocalDate) {
-        val saved = Schedule.memoOf(this, date)
+    /** 그 날의 메모 하나를 쓰거나 고친다. index 가 없는 자리(-1)면 새로 덧붙인다.
+     *  근무와 달리 주기·알람·캘린더와는 무관하다. */
+    private fun openMemo(date: LocalDate, index: Int) {
+        val saved = Schedule.memosOf(this, date).getOrNull(index)
         val input = EditText(this)
         input.setText(saved ?: "")
         input.setSelection(input.text.length)
         input.hint = "예: 치과 예약"
-        input.setSingleLine(false)
-        input.maxLines = 3
+        // 줄바꿈이 메모 사이를 가르므로 한 줄로 받는다
+        input.setSingleLine(true)
         // 창 좌우에 여백을 주지 않으면 글자가 모서리에 붙는다
         val box = FrameLayout(this)
         box.setPadding(dp(22), dp(8), dp(22), 0)
         box.addView(input)
 
         val b = AlertDialog.Builder(this)
-            .setTitle("%02d. %02d  ·  메모".format(date.monthValue, date.dayOfMonth))
+            .setTitle(
+                "%02d. %02d  ·  %s".format(
+                    date.monthValue, date.dayOfMonth, if (saved == null) "메모 추가" else "메모"
+                )
+            )
             .setView(box)
             .setPositiveButton("저장") { _, _ ->
-                Schedule.setMemo(this, date, input.text.toString())
-                saveMemo(date)
+                if (saved == null) Schedule.addMemo(this, date, input.text.toString())
+                else Schedule.editMemo(this, date, index, input.text.toString())
+                afterMemo(date, "메모를 저장했습니다")
             }
             .setNegativeButton("닫기", null)
-        // 적어둔 것이 없으면 지울 것도 없다
+        // 아직 없는 메모는 지울 것도 없다
         if (saved != null) b.setNeutralButton("지우기") { _, _ ->
-            Schedule.setMemo(this, date, null)
-            saveMemo(date)
+            Schedule.editMemo(this, date, index, null)
+            afterMemo(date, "메모를 지웠습니다")
         }
         b.present()
     }
 
     /** 메모는 근무를 바꾸지 않으므로 알람·캘린더까지 건드리지 않고 화면만 다시 그린다. */
-    private fun saveMemo(date: LocalDate) {
+    private fun afterMemo(date: LocalDate, message: String) {
         render()
-        val now = Schedule.memoOf(this, date)
-        Toast.makeText(
-            this,
-            if (now == null) "${label(date)} 메모를 지웠습니다" else "${label(date)} 메모를 저장했습니다",
-            Toast.LENGTH_SHORT
-        ).show()
+        Toast.makeText(this, "${label(date)} $message", Toast.LENGTH_SHORT).show()
     }
 
     private fun label(date: LocalDate) = "%d월 %d일".format(date.monthValue, date.dayOfMonth)
@@ -517,6 +534,9 @@ class MainActivity : Activity() {
     }
 
     private companion object {
+        /** 메모가 여럿일 때 칸에 늘어놓는 최대 개수. 그 뒤는 +N 으로 뭉친다. */
+        private const val MEMO_BARS = 3
+
         private const val SUNDAY = 0xFFE0483C.toInt()
         private const val SATURDAY = 0xFF2F6FD0.toInt()
     }

@@ -88,15 +88,33 @@ object Schedule {
         e.apply()
     }
 
-    /** 그 날 적어둔 메모. 없으면 null.
+    /** 그 날 적어둔 메모들. 줄바꿈으로 이어 한 칸에 담으므로 메모 안에는 줄바꿈이 없다.
      *  하루 지정(ov:)과 다른 열쇠를 쓰므로 "직접 지정한 날짜 지우기"에 함께 지워지지 않는다. */
-    fun memoOf(ctx: Context, date: LocalDate): String? =
-        prefs(ctx).getString(MEMO + date, null)?.takeIf { it.isNotBlank() }
+    fun memosOf(ctx: Context, date: LocalDate): List<String> =
+        prefs(ctx).getString(MEMO + date, null)
+            ?.split("\n")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
 
-    fun setMemo(ctx: Context, date: LocalDate, text: String?) {
+    private fun setMemos(ctx: Context, date: LocalDate, list: List<String>) {
         val e = prefs(ctx).edit()
-        if (text.isNullOrBlank()) e.remove(MEMO + date) else e.putString(MEMO + date, text.trim())
+        if (list.isEmpty()) e.remove(MEMO + date)
+        else e.putString(MEMO + date, list.joinToString("\n"))
         e.apply()
+    }
+
+    /** 줄바꿈이 메모 사이를 가르므로 적힌 줄바꿈은 빈칸으로 바꿔 담는다. */
+    private fun oneLine(text: String) = text.trim().replace(Regex("\\s*\n\\s*"), " ")
+
+    fun addMemo(ctx: Context, date: LocalDate, text: String) {
+        if (text.isBlank()) return
+        setMemos(ctx, date, memosOf(ctx, date) + oneLine(text))
+    }
+
+    /** i 번째 메모를 고치거나(text), 지운다(null). */
+    fun editMemo(ctx: Context, date: LocalDate, i: Int, text: String?) {
+        val list = memosOf(ctx, date).toMutableList()
+        if (i !in list.indices) return
+        if (text.isNullOrBlank()) list.removeAt(i) else list[i] = oneLine(text)
+        setMemos(ctx, date, list)
     }
 
     fun clearOverrides(ctx: Context) {
