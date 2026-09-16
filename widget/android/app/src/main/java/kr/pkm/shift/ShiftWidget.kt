@@ -8,6 +8,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
 import java.time.LocalDate
@@ -16,8 +17,16 @@ import java.time.ZoneId
 class ShiftWidget : AppWidgetProvider() {
 
     override fun onUpdate(ctx: Context, mgr: AppWidgetManager, ids: IntArray) {
-        ids.forEach { mgr.updateAppWidget(it, buildViews(ctx)) }
+        ids.forEach { mgr.updateAppWidget(it, buildViews(ctx, hasRoomForMemo(mgr, it))) }
         scheduleMidnight(ctx)
+    }
+
+    /** 크기를 바꾸면 메모를 담을 자리가 생기거나 없어지므로 그 위젯만 다시 그린다. */
+    override fun onAppWidgetOptionsChanged(
+        ctx: Context, mgr: AppWidgetManager, id: Int, newOptions: Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(ctx, mgr, id, newOptions)
+        mgr.updateAppWidget(id, buildViews(ctx, hasRoomForMemo(mgr, id)))
     }
 
     override fun onEnabled(ctx: Context) {
@@ -60,6 +69,12 @@ class ShiftWidget : AppWidgetProvider() {
         /** 달을 옮긴 뒤 이만큼 지나면 이번 달로 되돌린다. */
         private const val MONTH_RESET_MS = 3 * 60 * 1000L
 
+        /** 달력 칸이 아닌 부분 — 위아래 여백, 머리글, 요일 줄 */
+        private const val CHROME_DP = 70
+
+        /** 날짜·배지 줄에 메모 한 줄까지 들어가려면 한 주에 이만큼은 있어야 한다 */
+        private const val ROW_FOR_MEMO_DP = 40
+
         private const val SUNDAY = 0xFFE0483C.toInt()
         private const val SATURDAY = 0xFF2F6FD0.toInt()
 
@@ -87,10 +102,22 @@ class ShiftWidget : AppWidgetProvider() {
         fun refreshAll(ctx: Context) {
             val mgr = AppWidgetManager.getInstance(ctx)
             val ids = mgr.getAppWidgetIds(ComponentName(ctx, ShiftWidget::class.java))
-            ids.forEach { mgr.updateAppWidget(it, buildViews(ctx)) }
+            ids.forEach { mgr.updateAppWidget(it, buildViews(ctx, hasRoomForMemo(mgr, it))) }
         }
 
-        private fun buildViews(ctx: Context): RemoteViews {
+        /** 위젯 높이에서 머리글과 요일 줄을 뺀 뒤 주 수로 나눠, 메모 한 줄이 들어갈지 본다.
+         *  위젯은 재어 볼 수가 없으므로 런처가 알려주는 크기로 가늠하는 수밖에 없다.
+         *  달이 5주일 때도 있지만 6주로 잡아 빠듯할 때는 넣지 않는다. */
+        private fun hasRoomForMemo(mgr: AppWidgetManager, id: Int): Boolean {
+            val height = runCatching {
+                mgr.getAppWidgetOptions(id)
+                    .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+            }.getOrDefault(0)
+            if (height <= 0) return false
+            return (height - CHROME_DP) / 6 >= ROW_FOR_MEMO_DP
+        }
+
+        private fun buildViews(ctx: Context, showMemo: Boolean): RemoteViews {
             val v = RemoteViews(ctx.packageName, R.layout.widget)
             val today = LocalDate.now()
             val month = today.withDayOfMonth(1)
@@ -153,6 +180,19 @@ class ShiftWidget : AppWidgetProvider() {
                     // 자리는 지키되 보이지 않게 해 칸 높이가 흔들리지 않도록 한다
                     v.setViewVisibility(WidgetIds.BADGE[i], View.INVISIBLE)
                 }
+
+                // 메모는 자리가 있을 때만. 여럿이면 첫 줄만 보이고 나머지는 개수로 알린다.
+                val memos = if (inMonth && showMemo) Schedule.memosOf(ctx, date) else emptyList()
+                val memo = when {
+                    memos.isEmpty() -> ""
+                    memos.size == 1 -> memos[0]
+                    else -> "${memos[0]} +${memos.size - 1}"
+                }
+                v.setTextViewText(WidgetIds.MEMO[i], memo)
+                v.setTextColor(WidgetIds.MEMO[i], ctx.getColor(R.color.memo_fg))
+                v.setViewVisibility(
+                    WidgetIds.MEMO[i], if (memo.isEmpty()) View.GONE else View.VISIBLE
+                )
 
                 v.setInt(
                     WidgetIds.CELL[i], "setBackgroundResource",
