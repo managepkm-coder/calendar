@@ -11,6 +11,16 @@ object Palette {
         Shift.SUPPORT -> R.drawable.badge_ji
     }
 
+    /** 띠로 깔 때 쓰는 바탕색. 배지 drawable 과 같은 값을 가리킨다. */
+    fun barColor(s: Shift) = when (s) {
+        Shift.DAY -> R.color.shift_ju
+        Shift.NIGHT -> R.color.shift_ya
+        Shift.OFF -> R.color.shift_bi
+        Shift.REST -> R.color.shift_hyu
+        Shift.ANNUAL -> R.color.shift_yeon
+        Shift.SUPPORT -> R.color.shift_ji
+    }
+
     /** 캘린더에 내보낼 때 목표로 삼는 색.
      *  배지 바탕은 연한 것이 섞여 있어 그대로 맞추면 엉뚱한 색이 잡히므로,
      *  근무마다 또렷한 색을 따로 둔다. 계정이 주는 색 중 여기서 가장 가까운 것을 쓴다. */

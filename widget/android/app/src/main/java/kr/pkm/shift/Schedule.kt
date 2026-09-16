@@ -13,6 +13,10 @@ enum class Shift(val label: String, val full: String) {
     ANNUAL("연", "연차"),
     SUPPORT("지", "지원근무");
 
+    /** 띠에 쓰는 이름. 한 달을 일곱 칸으로 나눠 쓰므로 두 글자로 맞춘다 —
+     *  네 글자인 지원근무만 줄어들고 나머지는 그대로다. */
+    val brief: String get() = if (full.length <= 2) full else full.take(2)
+
     /** 조사를 붙인 이름 — "주간으로", "휴무로".
      *  받침이 없는 말에 '으로'를 붙이면 "휴무으로"가 되어 읽기 어색합니다. */
     val fullRo: String
@@ -36,6 +40,7 @@ object Schedule {
     private const val PREFS = "shift"
     private const val KEY_OFFSET = "offset"
     private const val OVERRIDE = "ov:"
+    private const val MEMO = "memo:"
     private const val KEY_MONTH = "widgetMonth"
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -80,6 +85,17 @@ object Schedule {
     fun setOverride(ctx: Context, date: LocalDate, shift: Shift?) {
         val e = prefs(ctx).edit()
         if (shift == null) e.remove(OVERRIDE + date) else e.putString(OVERRIDE + date, shift.name)
+        e.apply()
+    }
+
+    /** 그 날 적어둔 메모. 없으면 null.
+     *  하루 지정(ov:)과 다른 열쇠를 쓰므로 "직접 지정한 날짜 지우기"에 함께 지워지지 않는다. */
+    fun memoOf(ctx: Context, date: LocalDate): String? =
+        prefs(ctx).getString(MEMO + date, null)?.takeIf { it.isNotBlank() }
+
+    fun setMemo(ctx: Context, date: LocalDate, text: String?) {
+        val e = prefs(ctx).edit()
+        if (text.isNullOrBlank()) e.remove(MEMO + date) else e.putString(MEMO + date, text.trim())
         e.apply()
     }
 

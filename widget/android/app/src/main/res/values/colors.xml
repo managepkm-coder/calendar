@@ -6,4 +6,15 @@
     <color name="screen_bg">#E9E7EE</color>
     <color name="today_bg">#E8F1FD</color>
     <color name="divider">#E8E8EC</color>
+    <!-- 근무 색. 위젯 배지(drawable)와 앱 화면의 띠가 같은 값을 쓰도록 여기 한 곳에 둔다 -->
+    <color name="shift_ju">#FFD63A</color>
+    <color name="shift_ya">#2C2C2E</color>
+    <color name="shift_bi">#FFE0DC</color>
+    <color name="shift_hyu">#E9E9EE</color>
+    <color name="shift_yeon">#DCE9FA</color>
+    <color name="shift_ji">#DCF0E2</color>
+
+    <!-- 날짜 칸에 붙는 메모 띠 -->
+    <color name="memo_bg">#F0EFF4</color>
+    <color name="memo_fg">#5A5A61</color>
 </resources>

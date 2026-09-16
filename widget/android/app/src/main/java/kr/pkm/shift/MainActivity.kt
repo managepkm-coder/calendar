@@ -6,11 +6,15 @@ import android.app.TimePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -145,15 +149,18 @@ class MainActivity : Activity() {
         val holiday = Holidays.nameOf(date)
         val col = LinearLayout(this)
         col.orientation = LinearLayout.VERTICAL
-        col.gravity = Gravity.CENTER_HORIZONTAL
-        col.setPadding(0, dp(7), 0, dp(9))
+        col.setPadding(dp(2), dp(5), dp(2), dp(6))
         if (date == LocalDate.now()) col.setBackgroundResource(R.drawable.bg_today)
         col.alpha = if (inMonth) 1f else 0.42f
 
+        // 공휴일 이름을 날짜와 같은 줄에 붙인다 — 줄 수가 칸마다 달라지면 띠가 어긋난다
         val label = TextView(this)
         label.text = (if (date.dayOfMonth == 1) "%02d.%02d".format(date.monthValue, date.dayOfMonth)
                       else "%02d".format(date.dayOfMonth)) + (holiday?.let { " $it" } ?: "")
-        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+        label.gravity = Gravity.CENTER
+        label.maxLines = 1
+        label.ellipsize = TextUtils.TruncateAt.END
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
         label.setTypeface(null, Typeface.BOLD)
         label.setTextColor(
             when {
@@ -164,22 +171,37 @@ class MainActivity : Activity() {
         )
         col.addView(label)
 
-        val shift = Schedule.at(this, date)
-        val badge = TextView(this)
-        if (shift != null) {
-            badge.text = shift.label
-            badge.setTextColor(Palette.fg(shift))
-            badge.setBackgroundResource(Palette.bg(shift))
+        Schedule.at(this, date)?.let { shift ->
+            col.addView(bar(shift.brief, getColor(Palette.barColor(shift)), Palette.fg(shift), 11f, 1))
         }
-        badge.gravity = Gravity.CENTER
-        badge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-        badge.setTypeface(null, Typeface.BOLD)
-        badge.layoutParams = LinearLayout.LayoutParams(dp(33), dp(33))
-            .apply { topMargin = dp(4) }
-        col.addView(badge)
+        // 메모는 길어질 수 있어 조금 작게, 두 줄까지 보여준다
+        Schedule.memoOf(this, date)?.let { memo ->
+            col.addView(bar(memo, getColor(R.color.memo_bg), getColor(R.color.memo_fg), 9f, 2))
+        }
 
         col.setOnClickListener { openDay(date) }
         return col
+    }
+
+    /** 날짜 아래에 칸 너비만큼 깔리는 띠 — 근무 하나, 메모 하나. */
+    private fun bar(text: String, bg: Int, fg: Int, size: Float, lines: Int): TextView {
+        val t = TextView(this)
+        t.text = text
+        t.gravity = Gravity.CENTER
+        t.maxLines = lines
+        t.ellipsize = TextUtils.TruncateAt.END
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, size)
+        if (lines == 1) t.setTypeface(null, Typeface.BOLD)
+        t.setTextColor(fg)
+        t.setPadding(dp(2), dp(3), dp(2), dp(3))
+        t.background = GradientDrawable().apply {
+            cornerRadius = dp(4).toFloat()
+            setColor(bg)
+        }
+        t.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = dp(3) }
+        return t
     }
 
     /** 날짜를 누르면 나오는 메뉴.
@@ -204,6 +226,10 @@ class MainActivity : Activity() {
                 Schedule.setOverride(this, date, sh)
                 applyChange("${label(date)}만 ${sh.fullRo} 바꿨습니다")
             }
+        }
+
+        actions += (if (Schedule.memoOf(this, date) == null) "메모 쓰기" else "메모 고치기") to {
+            openMemo(date)
         }
 
         actions += "이 날만 바꾸기 (교대)" to { openDayOnly(date) }
@@ -233,6 +259,47 @@ class MainActivity : Activity() {
             }
             .setNegativeButton("닫기", null)
             .present()
+    }
+
+    /** 그 날 한 줄 적어두기. 근무와 달리 주기·알람·캘린더와는 무관하다. */
+    private fun openMemo(date: LocalDate) {
+        val saved = Schedule.memoOf(this, date)
+        val input = EditText(this)
+        input.setText(saved ?: "")
+        input.setSelection(input.text.length)
+        input.hint = "예: 치과 예약"
+        input.setSingleLine(false)
+        input.maxLines = 3
+        // 창 좌우에 여백을 주지 않으면 글자가 모서리에 붙는다
+        val box = FrameLayout(this)
+        box.setPadding(dp(22), dp(8), dp(22), 0)
+        box.addView(input)
+
+        val b = AlertDialog.Builder(this)
+            .setTitle("%02d. %02d  ·  메모".format(date.monthValue, date.dayOfMonth))
+            .setView(box)
+            .setPositiveButton("저장") { _, _ ->
+                Schedule.setMemo(this, date, input.text.toString())
+                saveMemo(date)
+            }
+            .setNegativeButton("닫기", null)
+        // 적어둔 것이 없으면 지울 것도 없다
+        if (saved != null) b.setNeutralButton("지우기") { _, _ ->
+            Schedule.setMemo(this, date, null)
+            saveMemo(date)
+        }
+        b.present()
+    }
+
+    /** 메모는 근무를 바꾸지 않으므로 알람·캘린더까지 건드리지 않고 화면만 다시 그린다. */
+    private fun saveMemo(date: LocalDate) {
+        render()
+        val now = Schedule.memoOf(this, date)
+        Toast.makeText(
+            this,
+            if (now == null) "${label(date)} 메모를 지웠습니다" else "${label(date)} 메모를 저장했습니다",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun label(date: LocalDate) = "%d월 %d일".format(date.monthValue, date.dayOfMonth)

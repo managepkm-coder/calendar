@@ -6,4 +6,6 @@
     <color name="screen_bg">#131316</color>
     <color name="today_bg">#20304A</color>
     <color name="divider">#33333A</color>
+    <color name="memo_bg">#2A2A30</color>
+    <color name="memo_fg">#C7C7CE</color>
 </resources>
