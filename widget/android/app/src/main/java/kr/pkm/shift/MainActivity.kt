@@ -108,7 +108,7 @@ class MainActivity : Activity() {
             val t = TextView(this)
             t.text = name
             t.gravity = Gravity.CENTER
-            t.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp(13f))
+            t.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp(14f))
             t.setTextColor(
                 when (i) {
                     0 -> SUNDAY
@@ -186,7 +186,7 @@ class MainActivity : Activity() {
     private fun rowHeight(cells: List<View>): Int {
         val wSpec = View.MeasureSpec.makeMeasureSpec(cellWidthPx(), View.MeasureSpec.EXACTLY)
         val hSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-        var need = dp((52 * scale).toInt())
+        var need = dp((58 * scale).toInt())
         cells.forEach {
             it.measure(wSpec, hSpec)
             need = maxOf(need, it.measuredHeight)
@@ -209,7 +209,7 @@ class MainActivity : Activity() {
         label.gravity = Gravity.CENTER
         label.maxLines = 1
         label.ellipsize = TextUtils.TruncateAt.END
-        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp(13f))
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp(14f))
         label.setTextColor(
             when {
                 holiday != null || date.dayOfWeek.value == 7 -> SUNDAY
@@ -221,12 +221,12 @@ class MainActivity : Activity() {
 
         if (holiday != null) {
             col.addView(
-                bar(holiday, getColor(R.color.holiday_bg), getColor(R.color.holiday_fg), sp(9f), 1)
+                bar(holiday, getColor(R.color.holiday_bg), getColor(R.color.holiday_fg), sp(10f), 1)
             )
         }
         Schedule.at(this, date)?.let { shift ->
             col.addView(
-                bar(shift.full, getColor(Palette.barColor(shift)), Palette.fg(shift), sp(10f), 1)
+                bar(shift.full, getColor(Palette.barColor(shift)), Palette.fg(shift), sp(11f), 1)
             )
         }
 
@@ -235,11 +235,11 @@ class MainActivity : Activity() {
         val mbg = getColor(R.color.memo_bg)
         val mfg = getColor(R.color.memo_fg)
         if (memos.size == 1) {
-            col.addView(bar(memos[0], mbg, mfg, sp(9f), 2))
+            col.addView(bar(memos[0], mbg, mfg, sp(10f), 2))
         } else {
-            memos.take(MEMO_BARS).forEach { col.addView(bar(it, mbg, mfg, sp(9f), 1)) }
+            memos.take(MEMO_BARS).forEach { col.addView(bar(it, mbg, mfg, sp(10f), 1)) }
             if (memos.size > MEMO_BARS) {
-                col.addView(bar("+${memos.size - MEMO_BARS}", mbg, mfg, sp(9f), 1))
+                col.addView(bar("+${memos.size - MEMO_BARS}", mbg, mfg, sp(10f), 1))
             }
         }
 

@@ -72,8 +72,8 @@ class ShiftWidget : AppWidgetProvider() {
         /** 달력 칸이 아닌 부분 — 위아래 여백, 머리글, 요일 줄 */
         private const val CHROME_DP = 70
 
-        /** 날짜·배지 줄에 메모 한 줄까지 들어가려면 한 주에 이만큼은 있어야 한다 */
-        private const val ROW_FOR_MEMO_DP = 40
+        /** 날짜·근무 칩에 메모 한 줄까지 들어가려면 한 주에 이만큼은 있어야 한다 */
+        private const val ROW_FOR_MEMO_DP = 46
 
         private const val SUNDAY = 0xFFE0483C.toInt()
         private const val SATURDAY = 0xFF2F6FD0.toInt()
