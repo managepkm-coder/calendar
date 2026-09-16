@@ -142,27 +142,46 @@ class MainActivity : Activity() {
         val start = month.minusDays(startDow.toLong())
         val weeks = (startDow + month.lengthOfMonth() + 6) / 7
 
-        // 주 줄과 날짜 칸 모두 무게 1 — 화면에 남은 높이를 고르게 나눠 갖는다
         grid.removeAllViews()
         for (w in 0 until weeks) {
+            val cells = (0 until 7).map { d ->
+                val date = start.plusDays((w * 7 + d).toLong())
+                buildCell(date, date.monthValue == month.monthValue)
+            }
             val row = LinearLayout(this)
             row.orientation = LinearLayout.HORIZONTAL
-            // 날짜와 근무 띠가 늘 들어갈 만큼은 확보해 둔다. 화면에 자리가 남으면
-            // 무게를 따라 여기서 더 늘어나고, 모자라면 이 높이로 버티며 스크롤된다.
-            row.minimumHeight = dp((52 * scale).toInt())
+            // 줄 높이를 직접 재서 박는다. 칸이 MATCH_PARENT 라 스스로 높이를 알리지 못하므로,
+            // 이 값을 주지 않으면 줄은 늘 "화면 나누기"로만 잡히고 넘치는 띠가 조용히 잘린다.
+            // 높이를 박아 두면 다 합쳐 화면보다 짧을 땐 무게로 남은 자리를 나눠 갖고,
+            // 길 땐 스크롤로 넘어간다.
             row.layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+                LinearLayout.LayoutParams.MATCH_PARENT, rowHeight(cells), 1f
             )
-            for (d in 0 until 7) {
-                val date = start.plusDays((w * 7 + d).toLong())
-                val cell = buildCell(date, date.monthValue == month.monthValue)
+            cells.forEach { cell ->
                 cell.layoutParams =
                     LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
                 row.addView(cell)
             }
             grid.addView(row)
         }
+    }
+
+    /** 한 칸의 너비. 줄 높이를 재려면 글이 몇 줄로 접히는지 알아야 하므로 먼저 셈한다. */
+    private fun cellWidthPx(): Int {
+        val outer = dp(10) * 2 + dp(14) * 2      // 화면 여백 + 카드 여백
+        return ((resources.displayMetrics.widthPixels - outer) / 7).coerceAtLeast(dp(20))
+    }
+
+    /** 그 줄에서 가장 높은 칸만큼. 날짜와 근무 띠는 늘 들어가도록 아래도 받쳐 둔다. */
+    private fun rowHeight(cells: List<View>): Int {
+        val wSpec = View.MeasureSpec.makeMeasureSpec(cellWidthPx(), View.MeasureSpec.EXACTLY)
+        val hSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        var need = dp((52 * scale).toInt())
+        cells.forEach {
+            it.measure(wSpec, hSpec)
+            need = maxOf(need, it.measuredHeight)
+        }
+        return need
     }
 
     private fun buildCell(date: LocalDate, inMonth: Boolean): View {
