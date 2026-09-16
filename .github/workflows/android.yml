@@ -22,7 +22,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # packages 를 적지 않으면 기본값이 'tools platform-tools' 인데, 구글이 SDK 저장소에서
+      # tools 를 내려 sdkmanager 가 "Failed to find package 'tools'" 로 죽는다.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
 
       - uses: gradle/actions/setup-gradle@v4
         with:
