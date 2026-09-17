@@ -144,7 +144,7 @@ class MainActivity : Activity() {
 
         grid.removeAllViews()
         for (w in 0 until weeks) {
-            if (w > 0) grid.addView(line())
+            if (w > 0) grid.addView(line(horizontal = true))
             val cells = (0 until 7).map { d ->
                 val date = start.plusDays((w * 7 + d).toLong())
                 buildCell(date, date.monthValue == month.monthValue)
@@ -158,7 +158,8 @@ class MainActivity : Activity() {
             row.layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, rowHeight(cells), 1f
             )
-            cells.forEach { cell ->
+            cells.forEachIndexed { d, cell ->
+                if (d > 0) row.addView(line(horizontal = false))
                 cell.layoutParams =
                     LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
                 row.addView(cell)
@@ -167,20 +168,23 @@ class MainActivity : Activity() {
         }
     }
 
-    /** 주와 주 사이를 가르는 연회색 선. 요일 사이는 긋지 않는다 — 칩만으로 충분히 갈린다. */
-    private fun line(): View {
+    /** 칸 사이를 가르는 연회색 선. 가로선은 주와 주 사이, 세로선은 요일과 요일 사이. */
+    private fun line(horizontal: Boolean): View {
         val v = View(this)
         v.setBackgroundColor(getColor(R.color.divider))
-        v.layoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, maxOf(1, dp(1))
-        )
+        val thin = maxOf(1, dp(1))
+        v.layoutParams = if (horizontal) {
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, thin)
+        } else {
+            LinearLayout.LayoutParams(thin, LinearLayout.LayoutParams.MATCH_PARENT)
+        }
         return v
     }
 
     /** 한 칸의 너비. 줄 높이를 재려면 글이 몇 줄로 접히는지 알아야 하므로 먼저 셈한다. */
     private fun cellWidthPx(): Int {
-        // 화면 여백 + 카드 여백
-        val outer = dp(10) * 2 + dp(12) * 2
+        // 화면 여백 + 카드 여백 + 칸 사이 세로선 여섯 줄
+        val outer = dp(10) * 2 + dp(12) * 2 + maxOf(1, dp(1)) * 6
         return ((resources.displayMetrics.widthPixels - outer) / 7).coerceAtLeast(dp(20))
     }
 
