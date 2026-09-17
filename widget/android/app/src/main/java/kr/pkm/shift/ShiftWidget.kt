@@ -173,7 +173,7 @@ class ShiftWidget : AppWidgetProvider() {
 
                 val s = if (inMonth) Schedule.at(ctx, date) else null
                 if (s != null) {
-                    v.setTextViewText(WidgetIds.BADGE[i], s.full)
+                    v.setTextViewText(WidgetIds.BADGE[i], s.label)
                     v.setInt(WidgetIds.BADGE[i], "setBackgroundResource", Palette.bg(s))
                     v.setTextColor(WidgetIds.BADGE[i], Palette.fg(s))
                     v.setViewVisibility(WidgetIds.BADGE[i], View.VISIBLE)

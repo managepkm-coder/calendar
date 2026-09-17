@@ -26,9 +26,9 @@ object Palette {
      *  근무마다 또렷한 색을 따로 둔다. 계정이 주는 색 중 여기서 가장 가까운 것을 쓴다. */
     fun exportRgb(s: Shift) = when (s) {
         Shift.DAY -> 0xF6BF26      // 노랑
-        Shift.NIGHT -> 0x616161    // 진회색
+        Shift.NIGHT -> 0x039BE5    // 파랑
         Shift.OFF -> 0xD50000      // 빨강
-        Shift.REST -> 0x7986CB     // 연보라
+        Shift.REST -> 0xE67C73     // 연빨강
         Shift.ANNUAL -> 0x3F51B5   // 남색
         Shift.SUPPORT -> 0x0B8043  // 초록
     }
@@ -36,8 +36,8 @@ object Palette {
     fun fg(s: Shift) = when (s) {
         Shift.DAY -> 0xFF3D3300.toInt()
         Shift.NIGHT -> 0xFFFFFFFF.toInt()
-        Shift.OFF -> 0xFFC9372B.toInt()
-        Shift.REST -> 0xFF6B6B73.toInt()
+        Shift.OFF -> 0xFFFFFFFF.toInt()
+        Shift.REST -> 0xFF8C1D18.toInt()
         Shift.ANNUAL -> 0xFF2F6FD0.toInt()
         Shift.SUPPORT -> 0xFF1E7A45.toInt()
     }

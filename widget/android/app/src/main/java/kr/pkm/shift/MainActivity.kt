@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.app.TimePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.TextUtils
@@ -109,6 +110,7 @@ class MainActivity : Activity() {
             t.text = name
             t.gravity = Gravity.CENTER
             t.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp(14f))
+            t.setTypeface(null, Typeface.BOLD)
             t.setTextColor(
                 when (i) {
                     0 -> SUNDAY
@@ -202,14 +204,16 @@ class MainActivity : Activity() {
         if (date == LocalDate.now()) col.setBackgroundResource(R.drawable.bg_today)
         col.alpha = if (inMonth) 1f else 0.42f
 
-        // 날짜는 굵기 없이 가운데. 아래로 공휴일 · 근무 · 메모 칩이 쌓인다
+        // 날짜와 근무 동그라미를 한 줄에. 아래는 공휴일 · 메모 칩 몫
+        val head = LinearLayout(this)
+        head.orientation = LinearLayout.HORIZONTAL
+        head.gravity = Gravity.CENTER_VERTICAL
+
         val label = TextView(this)
-        label.text = if (date.dayOfMonth == 1) "%02d.%02d".format(date.monthValue, date.dayOfMonth)
-                     else "%02d".format(date.dayOfMonth)
-        label.gravity = Gravity.CENTER
+        label.text = "%02d".format(date.dayOfMonth)
         label.maxLines = 1
-        label.ellipsize = TextUtils.TruncateAt.END
         label.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp(14f))
+        label.setTypeface(null, Typeface.BOLD)
         label.setTextColor(
             when {
                 holiday != null || date.dayOfWeek.value == 7 -> SUNDAY
@@ -217,16 +221,15 @@ class MainActivity : Activity() {
                 else -> getColor(R.color.text_primary)
             }
         )
-        col.addView(label)
+        label.layoutParams =
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        head.addView(label)
+        Schedule.at(this, date)?.let { head.addView(badge(it)) }
+        col.addView(head)
 
         if (holiday != null) {
             col.addView(
                 bar(holiday, getColor(R.color.holiday_bg), getColor(R.color.holiday_fg), sp(10f), 1)
-            )
-        }
-        Schedule.at(this, date)?.let { shift ->
-            col.addView(
-                bar(shift.full, getColor(Palette.barColor(shift)), Palette.fg(shift), sp(11f), 1)
             )
         }
 
@@ -247,6 +250,23 @@ class MainActivity : Activity() {
         return col
     }
 
+    /** 날짜 옆 동그라미 — 주·야·비·휴·연·지 한 글자. */
+    private fun badge(shift: Shift): TextView {
+        val t = TextView(this)
+        t.text = shift.label
+        t.gravity = Gravity.CENTER
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp(12f))
+        t.setTypeface(null, Typeface.BOLD)
+        t.setTextColor(Palette.fg(shift))
+        t.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(getColor(Palette.barColor(shift)))
+        }
+        val side = dp((22 * scale).toInt())
+        t.layoutParams = LinearLayout.LayoutParams(side, side)
+        return t
+    }
+
     /** 날짜 아래에 칸 너비만큼 깔리는 띠 — 근무 하나, 메모 하나. */
     private fun bar(text: String, bg: Int, fg: Int, size: Float, lines: Int): TextView {
         val t = TextView(this)
@@ -255,6 +275,7 @@ class MainActivity : Activity() {
         t.maxLines = lines
         t.ellipsize = TextUtils.TruncateAt.END
         t.setTextSize(TypedValue.COMPLEX_UNIT_SP, size)
+        t.setTypeface(null, Typeface.BOLD)
         t.setTextColor(fg)
         t.setPadding(dp(2), dp(3), dp(2), dp(3))
         t.background = GradientDrawable().apply {
