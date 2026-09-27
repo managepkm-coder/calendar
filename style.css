@@ -1,19 +1,19 @@
 :root{
   --bg:#e9e7ee; --card:#fff; --fg:#2c2c2e; --sub:#8e8e93; --line:#f0f0f2;
   --sun:#e0483c; --sat:#2f6fd0;
-  --ju:#ffd63a;  --ju-fg:#3d3300;   /* 주간 */
-  --ya:#2c2c2e;  --ya-fg:#fff;      /* 야간 */
-  --bi:#e0483c;                      /* 비번 */
-  --hyu:#e0483c;                     /* 휴무 */
-  --off:#8e8e93;                     /* 연차 */
-  --sup:#1e7a45;                     /* 지원근무 */
+  /* 근무 색 — 안드로이드 앱의 colors.xml 과 같은 값입니다. 한쪽만 바꾸면 어긋납니다. */
+  --ju:#ffd63a;   --ju-fg:#3d3300;   /* 주간 */
+  --ya:#1a73e8;   --ya-fg:#fff;      /* 야간 */
+  --bi:#d93025;   --bi-fg:#fff;      /* 비번 */
+  --hyu:#f4a9a3;  --hyu-fg:#8c1d18;  /* 휴무 */
+  --yeon:#8e24aa; --yeon-fg:#fff;    /* 연차 */
+  --ji:#dcf0e2;   --ji-fg:#1e7a45;   /* 지원근무 */
   --sel:#2f6fd0; --sel-bg:#e8f1fd;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --bg:#131316; --card:#1e1e22; --fg:#f2f2f5; --sub:#9a9aa0; --line:#2a2a30;
     --sun:#ff6b5e; --sat:#6ba4f0;
-    --ya:#f2f2f5; --ya-fg:#1e1e22; --bi:#ff6b5e; --hyu:#ff6b5e;
     --sel:#6ba4f0; --sel-bg:#20304a;
   }
 }
@@ -55,12 +55,12 @@ h1{font-size:27px;font-weight:800;margin:0;letter-spacing:-.5px;font-variant-num
   display:flex;align-items:center;justify-content:center;
   font-size:17px;font-weight:800;
 }
-.badge.ju {background:var(--ju);color:var(--ju-fg)}
-.badge.ya {background:var(--ya);color:var(--ya-fg)}
-.badge.bi {color:var(--bi)}
-.badge.hyu{color:var(--hyu)}
-.badge.off{color:var(--off);text-decoration:underline}
-.badge.sup{color:var(--sup);text-decoration:underline}
+.badge.ju  {background:var(--ju);  color:var(--ju-fg)}
+.badge.ya  {background:var(--ya);  color:var(--ya-fg)}
+.badge.bi  {background:var(--bi);  color:var(--bi-fg)}
+.badge.hyu {background:var(--hyu); color:var(--hyu-fg)}
+.badge.yeon{background:var(--yeon);color:var(--yeon-fg)}
+.badge.ji  {background:var(--ji);  color:var(--ji-fg)}
 .badge.manual{box-shadow:0 0 0 2px var(--sel)}
 
 dialog{
@@ -70,6 +70,8 @@ dialog{
 dialog::backdrop{background:rgba(0,0,0,.4)}
 dialog h2{font-size:16px;margin:0 0 4px}
 dialog p{font-size:13px;color:var(--sub);margin:0 0 14px;line-height:1.5}
+dialog p.gap{margin-top:16px}
+dialog p b{color:var(--fg)}
 .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
 .badge.pick{width:52px;height:52px;font-size:20px;border:2px solid var(--line);cursor:pointer}
 .badge.pick.on{border-color:var(--sel)}

@@ -32,23 +32,30 @@
 
 <dialog id="settings">
   <h2>내 근무 맞추기</h2>
-  <p>오늘의 근무를 고르면 나머지 날짜가 모두 맞춰집니다.</p>
+  <p>근무 패턴 · <b id="patternText"></b></p>
+  <button class="txt" id="btnPattern">근무 패턴 바꾸기</button>
+  <p class="gap">오늘은 차례의 몇 번째 날인가요? 하나만 고르면 나머지 날짜가 모두 맞춰집니다.</p>
   <div class="row" id="offsetBtns"></div>
   <button class="txt" id="resetAll">직접 지정한 날짜 모두 지우기</button>
+  <button class="txt" onclick="this.closest('dialog').close()">닫기</button>
+</dialog>
+
+<dialog id="pattern">
+  <h2>근무 패턴 만들기</h2>
+  <p>되풀이되는 차례를 하루씩 골라 쌓습니다. 이틀 이상이면 거기서 끊어 저장할 수 있습니다.</p>
+  <p class="gap"><b id="patternSoFar"></b></p>
+  <h2 id="patternStep"></h2>
+  <div class="row" id="patternBtns"></div>
+  <button class="txt" id="patternSave"></button>
+  <button class="txt" id="patternUndo">한 칸 지우기</button>
+  <button class="txt" id="patternDefault">기본 4일 주기 (주 · 야 · 비 · 휴)</button>
   <button class="txt" onclick="this.closest('dialog').close()">닫기</button>
 </dialog>
 
 <dialog id="daySheet">
   <h2 id="dayTitle"></h2>
   <p>이 날의 근무를 직접 바꿉니다. (교대·연차용)</p>
-  <div class="row">
-    <button class="badge ju  pick" data-set="0">주</button>
-    <button class="badge ya  pick" data-set="1">야</button>
-    <button class="badge bi  pick" data-set="2">비</button>
-    <button class="badge hyu pick" data-set="3">휴</button>
-    <button class="badge off pick" data-set="연">연</button>
-    <button class="badge sup pick" data-set="지">지</button>
-  </div>
+  <div class="row" id="dayBtns"></div>
   <button class="txt" data-set="clear">이 날 지정 해제 (주기대로)</button>
   <button class="txt" onclick="this.closest('dialog').close()">닫기</button>
 </dialog>

@@ -111,9 +111,14 @@ v4.1 부터 **주 줄이 자기 칸 일곱 개를 직접 재서**(`rowHeight`) �
 
 ## 남은 일
 
-- **웹앱과 iOS 는 아직 4일 주기가 코드에 박혀 있습니다.** 안드로이드만 v4.0 부터 사용자가 패턴을
-  정할 수 있습니다. 기본 4일 주기가 아닌 패턴을 쓰면 세 화면이 서로 다르게 나옵니다.
-  (`app.js` 의 `CYCLE`/`ANCHOR`, `widget/ios/shift-widget.js` 의 같은 이름)
+- **iOS 위젯은 아직 4일 주기가 코드에 박혀 있습니다** (`widget/ios/shift-widget.js` 의 `CYCLE`/`ANCHOR`).
+  안드로이드와 웹앱은 사용자가 패턴을 정합니다.
+- **웹앱 배포는 `main` 에 push 할 때만 돌아갑니다** (`.github/workflows/pages.yml`).
+  작업 브랜치가 기본 브랜치이긴 해도 이름이 `main` 이 아니라서, 웹앱을 고쳐도
+  GitHub Pages 에는 반영되지 않습니다. 반영하려면 Actions 에서 `Deploy to GitHub Pages` 를
+  수동 실행(workflow_dispatch)하거나 `main` 으로 합쳐야 합니다.
+- **웹앱 파일을 고치면 `sw.js` 의 `CACHE` 버전을 올려야 합니다.** 안 올리면 브라우저가
+  옛 파일을 계속 씁니다.
 - **구글 드라이브에서 가져오기** — 무엇을 가져올지 정하지 못해 멈춰 있습니다.
   인터넷 권한도 의존성도 없이 `ACTION_OPEN_DOCUMENT`(안드로이드 파일 선택기)만으로 됩니다.
   선택기에 드라이브가 그대로 나오고, 드라이브 앱이 내용을 건네줍니다.
