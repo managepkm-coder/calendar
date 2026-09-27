@@ -29,7 +29,7 @@ object Palette {
         Shift.NIGHT -> 0x039BE5    // 파랑
         Shift.OFF -> 0xD50000      // 빨강
         Shift.REST -> 0xE67C73     // 연빨강
-        Shift.ANNUAL -> 0x3F51B5   // 남색
+        Shift.ANNUAL -> 0x8E24AA   // 보라
         Shift.SUPPORT -> 0x0B8043  // 초록
     }
 
@@ -38,7 +38,7 @@ object Palette {
         Shift.NIGHT -> 0xFFFFFFFF.toInt()
         Shift.OFF -> 0xFFFFFFFF.toInt()
         Shift.REST -> 0xFF8C1D18.toInt()
-        Shift.ANNUAL -> 0xFF2F6FD0.toInt()
+        Shift.ANNUAL -> 0xFFFFFFFF.toInt()
         Shift.SUPPORT -> 0xFF1E7A45.toInt()
     }
 }
