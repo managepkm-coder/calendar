@@ -67,6 +67,14 @@ class MainActivity : Activity() {
         openDay(tapped)
     }
 
+    /** 내보낸 기간을 채우는 일이 위젯의 자정 갱신에만 걸려 있으면, 위젯을 홈 화면에서
+     *  빼둔 사람에게는 영영 돌지 않아 근무표가 내보낸 날 기준으로 멈춘다.
+     *  앱을 열 때도 확인한다 — 기간이 남았으면 곧장 돌아가므로 비용이 없다. */
+    override fun onResume() {
+        super.onResume()
+        CalendarSync.syncIfDue(this)
+    }
+
     override fun onDestroy() {
         current?.dismiss()
         current = null

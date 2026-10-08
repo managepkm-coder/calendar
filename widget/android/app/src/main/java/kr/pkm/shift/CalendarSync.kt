@@ -67,7 +67,8 @@ object CalendarSync {
         if (isEnabled(ctx)) syncNow(ctx)
     }
 
-    /** 자정·부팅 때 호출 — 기간이 줄었으면 다시 채운다 */
+    /** 자정·부팅·앱 열 때 호출 — 내보낸 기간의 앞쪽이 줄었으면 다시 채운다.
+     *  내보내기는 '오늘부터 months 개월'을 쓰므로, 다시 내보낼 때마다 창이 앞으로 밀린다. */
     fun syncIfDue(ctx: Context) {
         if (!isEnabled(ctx)) return
         val last = prefs(ctx).getLong(KEY_LAST, -1L)
